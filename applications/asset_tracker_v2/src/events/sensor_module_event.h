@@ -30,7 +30,12 @@ enum sensor_module_event_type {
 	 */
 	SENSOR_EVT_MOVEMENT_DATA_READY,
 
-	/** Environmental sensors have been sampled.
+	/** Impact detected.
+	 *  Payload is of type @ref sensor_module_data (impact).
+	 */
+	SENSOR_EVT_IMPACT_DATA_READY,
+
+	/** Environmental sensors has been sampled.
 	 *  Payload is of type @ref sensor_module_data (sensors).
 	 */
 	SENSOR_EVT_ENVIRONMENTAL_DATA_READY,
@@ -73,6 +78,14 @@ struct sensor_module_accel_data {
 	double values[ACCELEROMETER_AXIS_COUNT];
 };
 
+/** @brief Structure used to provide impact data. */
+struct sensor_module_impact_data {
+	/** Uptime when the data was sampled. */
+	int64_t timestamp;
+	/** Acceleration on impact, measured in G. */
+	double magnitude;
+};
+
 /** @brief Sensor module event. */
 struct sensor_module_event {
 	/** Sensor module application event header. */
@@ -84,6 +97,8 @@ struct sensor_module_event {
 		struct sensor_module_data sensors;
 		/** Variable that contains acceleration data. */
 		struct sensor_module_accel_data accel;
+		/** Variable that contains impact data. */
+		struct sensor_module_impact_data impact;
 		/** Module ID, used when acknowledging shutdown requests. */
 		uint32_t id;
 		/** Code signifying the cause of error. */

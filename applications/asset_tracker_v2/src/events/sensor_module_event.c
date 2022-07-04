@@ -14,6 +14,8 @@ static char *get_evt_type_str(enum sensor_module_event_type type)
 	switch (type) {
 	case SENSOR_EVT_MOVEMENT_DATA_READY:
 		return "SENSOR_EVT_MOVEMENT_DATA_READY";
+	case SENSOR_EVT_IMPACT_DATA_READY:
+		return "SENSOR_EVT_IMPACT_DATA_READY";
 	case SENSOR_EVT_ENVIRONMENTAL_DATA_READY:
 		return "SENSOR_EVT_ENVIRONMENTAL_DATA_READY";
 	case SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED:

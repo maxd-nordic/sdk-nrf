@@ -27,13 +27,20 @@ extern "C" {
 
 /** @brief Enum containing callback events from library. */
 enum ext_sensor_evt_type {
-	EXT_SENSOR_EVT_ACCELEROMETER_TRIGGER,
+	/** ADXL362 low-power accelerometer */
+	EXT_SENSOR_EVT_ACCELEROMETER_LP_TRIGGER,
+	/** ADXL372 high-G accelerometer */
+	EXT_SENSOR_EVT_ACCELEROMETER_HG_TRIGGER,
 
-	/** Events propagated when an error associated with a sensor device occurs. */
+	/** Event propagated when an error has occurred with any of the accelerometers. */
 	EXT_SENSOR_EVT_ACCELEROMETER_ERROR,
+	/** Event propagated when an error has occurred with the temperature sensor. */
 	EXT_SENSOR_EVT_TEMPERATURE_ERROR,
+	/** Event propagated when an error has occurred with the humidity sensor. */
 	EXT_SENSOR_EVT_HUMIDITY_ERROR,
+	/** Event propagated when an error has occurred with the pressure sensor. */
 	EXT_SENSOR_EVT_PRESSURE_ERROR,
+	/** Event propagated when an error has occurred with the air quality sensor. */
 	EXT_SENSOR_EVT_BME680_ERROR
 };
 

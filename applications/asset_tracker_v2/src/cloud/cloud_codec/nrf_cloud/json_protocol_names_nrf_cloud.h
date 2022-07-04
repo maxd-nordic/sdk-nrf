@@ -28,6 +28,7 @@
 #define DATA_BUTTON	    "btn"
 #define DATA_CONFIG	    "config"
 #define DATA_VERSION	    "version"
+#define DATA_IMPACT         "impact"
 
 #define DATA_GROUP     "messageType"
 #define DATA_ID	       "appId"
@@ -47,6 +48,7 @@
 #define APP_ID_TEMPERATURE "TEMP"
 #define APP_ID_RSRP	   "RSRP"
 #define APP_ID_CELL_POS    "CELL_POS"
+#define APP_ID_IMPACT      "IMPACT"
 
 #define MODEM_CURRENT_BAND     "currentBand"
 #define MODEM_NETWORK_MODE     "networkMode"

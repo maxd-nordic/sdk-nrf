@@ -9,6 +9,7 @@
 #include <string.h>
 #include <zephyr/drivers/sensor.h>
 #include <stdlib.h>
+#include <math.h>
 
 #if defined(CONFIG_EXTERNAL_SENSORS_BME680_BSEC)
 #include "ext_sensors_bsec.h"
@@ -57,9 +58,16 @@ static struct env_sensor press_sensor = {
 	.dev = DEVICE_DT_GET(DT_ALIAS(pressure_sensor)),
 };
 
-static struct env_sensor accel_sensor = {
+/** Sensor struct for the low-power accelerometer */
+static struct env_sensor accel_sensor_lp = {
 	.channel = SENSOR_CHAN_ACCEL_XYZ,
 	.dev = DEVICE_DT_GET(DT_ALIAS(accelerometer)),
+};
+
+/** Sensor struct for the high-G accelerometer */
+static struct env_sensor accel_sensor_hg = {
+	.channel = SENSOR_CHAN_ACCEL_XYZ,
+	.dev = DEVICE_DT_GET(DT_ALIAS(impact_sensor)),
 };
 
 static ext_sensor_handler_t evt_handler;
@@ -108,10 +116,46 @@ static void accelerometer_trigger_handler(const struct device *dev,
 		     (abs(evt.value_array[1]) > threshold) ||
 		     (abs(evt.value_array[2]) > threshold))) {
 
-			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_TRIGGER;
+			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_LP_TRIGGER;
 			evt_handler(&evt);
 		}
 
+		break;
+	default:
+		LOG_ERR("Unknown trigger");
+	}
+}
+
+static void impact_trigger_handler(const struct device *dev,
+				   const struct sensor_trigger *trig)
+{
+	struct sensor_value data[ACCELEROMETER_CHANNELS];
+	struct ext_sensor_evt evt = {0};
+	int err;
+
+	switch (trig->type) {
+	case SENSOR_TRIG_THRESHOLD:
+		if (sensor_sample_fetch(dev) < 0) {
+			LOG_ERR("Sample fetch error");
+			return;
+		}
+
+		err = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, data);
+		if (err) {
+			LOG_ERR("sensor_channel_get, error: %d", err);
+			return;
+		}
+
+		evt.value = sqrt(pow(sensor_ms2_to_g(&data[0]), 2.0) +
+				 pow(sensor_ms2_to_g(&data[1]), 2.0) +
+				 pow(sensor_ms2_to_g(&data[2]), 2.0));
+
+		LOG_DBG("Detected impact of %6.2f g\n", evt.value);
+
+		if (evt.value > 0.0) {
+			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_HG_TRIGGER;
+			evt_handler(&evt);
+		}
 		break;
 	default:
 		LOG_ERR("Unknown trigger");
@@ -157,26 +201,43 @@ int ext_sensors_init(ext_sensor_handler_t handler)
 	}
 #endif /* if defined(CONFIG_EXTERNAL_SENSORS_BME680_BSEC) */
 
-	if (!device_is_ready(accel_sensor.dev)) {
-		LOG_ERR("Accelerometer device is not ready");
+	if (!device_is_ready(accel_sensor_lp.dev)) {
+		LOG_ERR("Low-power accelerometer device is not ready");
 		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
-	} else {
-#if defined(CONFIG_EXTERNAL_SENSORS_ACTIVITY_DETECTION_AUTO)
+	} else if (IS_ENABLED(CONFIG_EXTERNAL_SENSORS_ACTIVITY_DETECTION_AUTO)) {
 		struct sensor_trigger trig = {
 			.chan = SENSOR_CHAN_ACCEL_XYZ,
 			.type = SENSOR_TRIG_THRESHOLD
 		};
 
-		int err = sensor_trigger_set(accel_sensor.dev,
+		int err = sensor_trigger_set(accel_sensor_lp.dev,
 					     &trig, accelerometer_trigger_handler);
 
 		if (err) {
 			LOG_ERR("Could not set trigger for device %s, error: %d",
-				accel_sensor.dev->name, err);
+				accel_sensor_lp.dev->name, err);
 			return err;
 		}
-#endif
+	}
+
+	if (!device_is_ready(accel_sensor_hg.dev)) {
+		LOG_ERR("High-G accelerometer device is not ready");
+		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
+		evt_handler(&evt);
+	} else if (IS_ENABLED(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION_AUTO)) {
+		struct sensor_trigger trig = {
+			.chan = SENSOR_CHAN_ACCEL_XYZ,
+			.type = SENSOR_TRIG_THRESHOLD
+		};
+
+		int err = sensor_trigger_set(accel_sensor_hg.dev,
+					     &trig, impact_trigger_handler);
+		if (err) {
+			LOG_ERR("Could not set trigger for device %s, error: %d",
+				accel_sensor_hg.dev->name, err);
+			return err;
+		}
 	}
 
 	return 0;
@@ -329,34 +390,34 @@ int ext_sensors_mov_thres_set(double threshold_new)
 		.val1 = input_value
 	};
 
-	err = sensor_attr_set(accel_sensor.dev, SENSOR_CHAN_ACCEL_X,
+	err = sensor_attr_set(accel_sensor_lp.dev, SENSOR_CHAN_ACCEL_X,
 			      SENSOR_ATTR_UPPER_THRESH, &data);
 	if (err) {
 		LOG_ERR("Failed to set accelerometer x-axis threshold value");
 		LOG_ERR("Device: %s, error: %d",
-			accel_sensor.dev->name, err);
+			accel_sensor_lp.dev->name, err);
 		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 		return err;
 	}
 
-	err = sensor_attr_set(accel_sensor.dev, SENSOR_CHAN_ACCEL_Y,
+	err = sensor_attr_set(accel_sensor_lp.dev, SENSOR_CHAN_ACCEL_Y,
 			      SENSOR_ATTR_UPPER_THRESH, &data);
 	if (err) {
 		LOG_ERR("Failed to set accelerometer y-axis threshold value");
 		LOG_ERR("Device: %s, error: %d",
-			accel_sensor.dev->name, err);
+			accel_sensor_lp.dev->name, err);
 		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 		return err;
 	}
 
-	err = sensor_attr_set(accel_sensor.dev, SENSOR_CHAN_ACCEL_Z,
+	err = sensor_attr_set(accel_sensor_lp.dev, SENSOR_CHAN_ACCEL_Z,
 			      SENSOR_ATTR_UPPER_THRESH, &data);
 	if (err) {
 		LOG_ERR("Failed to set accelerometer z-axis threshold value");
 		LOG_ERR("Device: %s, error: %d",
-			accel_sensor.dev->name, err);
+			accel_sensor_lp.dev->name, err);
 		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 		return err;
@@ -378,10 +439,10 @@ int ext_sensors_accelerometer_trigger_callback_set(bool enable)
 
 	sensor_trigger_handler_t handler = enable ? accelerometer_trigger_handler : NULL;
 
-	err = sensor_trigger_set(accel_sensor.dev, &trig, handler);
+	err = sensor_trigger_set(accel_sensor_lp.dev, &trig, handler);
 	if (err) {
 		LOG_ERR("Could not set trigger for device %s, error: %d",
-			accel_sensor.dev->name, err);
+			accel_sensor_lp.dev->name, err);
 		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 		return err;

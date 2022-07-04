@@ -16,6 +16,11 @@ config EXTERNAL_SENSORS_ACTIVITY_DETECTION_AUTO
 	  If the option is disabled, the accelerometer trigger handler must manually be enabled to
 	  detect activity.
 
+config EXTERNAL_SENSORS_IMPACT_DETECTION_AUTO
+	bool "Start impact detection automatically"
+	help
+	  Enable this option to start impact detection when the library is initialized.
+
 config EXTERNAL_SENSORS_BME680_BSEC
 	bool "Use Bosch BME680 library"
 	depends on !BME680
