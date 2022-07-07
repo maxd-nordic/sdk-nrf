@@ -36,6 +36,7 @@ static int power_mgmt_init(void)
 		return err;
 	}
 
+
 	err = adp536x_buckbst_3v3_set();
 	if (err) {
 		LOG_ERR("Could not set buck/boost to 3.3 V, error: %d\n", err);
@@ -52,10 +53,12 @@ static int power_mgmt_init(void)
 	 * on its output faster down when it's inactive. Needed because some
 	 * components require to boot up from ~0V.
 	 */
-	err = adp536x_buck_discharge_set(true);
+	err = adp536x_buck_discharge_set(false);
 	if (err) {
 		return err;
 	}
+
+	adp536x_buck_enable(false);
 
 	/* Sets the VBUS current limit to 500 mA. */
 	err = adp536x_vbus_current_set(ADP536X_VBUS_ILIM_500mA);

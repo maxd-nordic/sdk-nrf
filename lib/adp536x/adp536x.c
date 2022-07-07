@@ -114,6 +114,8 @@
 #define ADP536X_BAT_OC_CHG_DGT_OC_CHG(x)		(((x) & 0x03) << 3)
 
 /* Buck configure register. */
+#define ADP536X_BUCK_CFG_EN_BUCK_MSK			BIT(0)
+#define ADP536X_BUCK_CFG_EN_BUCK(x)			(((x) & 0x01) << 0)
 #define ADP536X_BUCK_CFG_DISCHG_BUCK_MSK		BIT(1)
 #define ADP536X_BUCK_CFG_DISCHG_BUCK(x)			(((x) & 0x01) << 1)
 
@@ -266,6 +268,13 @@ int adp536x_buckbst_enable(bool enable)
 	return adp536x_reg_write_mask(ADP536X_BUCKBST_CFG,
 					ADP536X_BUCKBST_CFG_EN_BUCKBST_MSK,
 					ADP536X_BUCKBST_CFG_EN_BUCKBST(enable));
+}
+
+int adp536x_buck_enable(bool enable)
+{
+	return adp536x_reg_write_mask(ADP536X_BUCK_CFG,
+					ADP536X_BUCK_CFG_EN_BUCK_MSK,
+					ADP536X_BUCK_CFG_EN_BUCK(enable));
 }
 
 static int adp536x_default_set(void)

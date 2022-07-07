@@ -150,6 +150,16 @@ int adp536x_oc_dis_hiccup_set(bool enable);
 int adp536x_buckbst_enable(bool enable);
 
 /**
+ * @brief Enable the buck regulator.
+ *
+ * @param[in] enable The requested regulator operation state.
+ *
+ * @retval 0 If the operation was successful.
+ *           Otherwise, a (negative) error code is returned.
+ */
+int adp536x_buck_enable(bool enable);
+
+/**
  * @brief Set the buck regulator to 1.8 V.
  *
  * @retval 0 If the operation was successful.
