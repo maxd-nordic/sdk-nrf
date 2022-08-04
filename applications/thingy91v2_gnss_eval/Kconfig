@@ -1,0 +1,67 @@
+#
+# Copyright (c) 2022 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "GNSS evaluation sample"
+config MQTT_TOPIC_PREFIX
+	string "MQTT topic prefix"
+	default "45adb858-13f4-11ed-882f-97c94111fe8a"
+
+config MQTT_COMMAND_TOPIC
+	string "MQTT command topic"
+	default "command"
+
+config MQTT_STATUS_TOPIC
+	string "MQTT status topic"
+	default "status"
+
+config MQTT_DATA_TOPIC
+	string "MQTT data topic"
+	default "data"
+
+config MQTT_CLIENT_ID
+	string "MQTT Client ID"
+	help
+	  Use a custom Client ID string. If not set, the client ID will be
+	  generated based on IMEI number (for nRF9160 based targets) or
+	  randomly (for other platforms).
+	default ""
+
+config MQTT_BROKER_HOSTNAME
+	string "MQTT broker hostname"
+	default "mqtt.eclipseprojects.io"
+
+config MQTT_BROKER_PORT
+	int "MQTT broker port"
+	default 1883
+
+config MQTT_MESSAGE_BUFFER_SIZE
+	int "MQTT message buffer size"
+	default 512
+
+config MQTT_PAYLOAD_BUFFER_SIZE
+	int "MQTT payload buffer size"
+	default 512
+
+config MQTT_RECONNECT_DELAY_S
+	int "Seconds to delay before attempting to reconnect to the broker."
+	default 60
+
+config LTE_CONNECT_RETRY_DELAY_S
+	int "Seconds to delay before attempting to retry LTE connection."
+	default 120
+
+config GNSS_TIMEOUT_S
+	int "Seconds to delay before giving up on obtaining a fix."
+	default 600
+endmenu
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu
+
+module = GNSS_EVAL
+module-str = GNSS Evaluation
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
