@@ -66,6 +66,8 @@ static int modem_configure(void)
 	nrf_modem_at_printf("AT+CMEE=1");
 	nrf_modem_at_printf("AT+CNEC=24");
 
+	nrf_modem_gnss_stop();
+
 	int err;
 
 	LOG_INF("LTE Link Connecting...");
@@ -92,11 +94,24 @@ static void gnss_event_handler(int event)
 	case NRF_MODEM_GNSS_EVT_PVT:
 		retval = nrf_modem_gnss_read(&last_pvt, sizeof(last_pvt), NRF_MODEM_GNSS_DATA_PVT);
 		if (retval == 0) {
-			LOG_INF("PVT received, flags: 0x%02x", last_pvt.flags);
+			LOG_INF("PVT received, flags: 0x%02x, sv:%d%d%d%d%d%d%d%d%d%d%d%d",
+			last_pvt.flags,
+			last_pvt.sv[0].flags,
+			last_pvt.sv[1].flags,
+			last_pvt.sv[2].flags,
+			last_pvt.sv[3].flags,
+			last_pvt.sv[4].flags,
+			last_pvt.sv[5].flags,
+			last_pvt.sv[6].flags,
+			last_pvt.sv[7].flags,
+			last_pvt.sv[8].flags,
+			last_pvt.sv[9].flags,
+			last_pvt.sv[10].flags,
+			last_pvt.sv[11].flags);
 		}
 		break;
 	case NRF_MODEM_GNSS_EVT_FIX:
-		time_to_fix = (k_uptime_get() - fix_timestamp) / 1000;
+		time_to_fix = (k_uptime_get() - fix_timestamp);
 		LOG_INF("Time to fix: %u", time_to_fix);
 		k_sem_give(&measure_sem);
 		break;
@@ -171,6 +186,11 @@ int gnss_test(void) {
 		return -1;
 	}
 
+	if ((ret = nrf_modem_gnss_fix_retry_set(0))) {
+		LOG_ERR("Failed to set GNSS timeout %d", ret);
+		return -1;
+	}
+
 	LOG_INF("Starting GNSS");
 	if ((ret = nrf_modem_gnss_start())) {
 		LOG_ERR("Failed to start GNSS %d", ret);
@@ -231,16 +251,18 @@ void main(void)
 			ret = _mqtt_establish_connection(&client);
 			if (!ret) {
 				set_state(STATE_WAIT_FOR_COMMAND);
-				if (time_to_fix) {
-					ret = snprintf(output_buf, sizeof(output_buf),
-						       "ttf: %us", time_to_fix);
-					if (ret > 0) {
-						_mqtt_data_publish(&client, output_buf);
-					}
-				}
 			}
 			break;
 		case STATE_WAIT_FOR_COMMAND:
+			if (time_to_fix) {
+				output_buf[0] = 0;
+				ret = snprintf(output_buf, sizeof(output_buf),
+						"ttf: %ums", time_to_fix);
+				ret = _mqtt_data_publish(&client, output_buf);
+				if (!ret) {
+					time_to_fix = 0;
+				}
+			}
 			ret = _mqtt_handle_connection(&client);
 			if (ret) {
 				set_state(STATE_CONNECT_MQTT);
@@ -257,7 +279,10 @@ void main(void)
 			}
 			break;
 		case STATE_MEASURE_WAIT:
-			k_sem_take(&measure_sem, K_SECONDS(CONFIG_GNSS_TIMEOUT_S));
+			ret = k_sem_take(&measure_sem, K_SECONDS(CONFIG_GNSS_TIMEOUT_S));
+			if (ret) {
+				LOG_ERR("GNSS timeout reached: %s", (ret==-EAGAIN)?"-EAGAIN":"-EBUSY");
+			}
 			set_state(STATE_INIT);
 			break;
 		default:
