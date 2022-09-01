@@ -52,6 +52,10 @@ config MQTT_RECONNECT_DELAY_S
 config LTE_CONNECT_RETRY_DELAY_S
 	int "Seconds to delay before attempting to retry LTE connection."
 	default 120
+
+config GNSS_TIMEOUT_S
+	int "Seconds to delay before giving up on obtaining a fix."
+	default 600
 endmenu
 
 menu "Zephyr Kernel"

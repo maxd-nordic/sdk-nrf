@@ -23,8 +23,11 @@ static uint8_t output_buf[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
 /* The mqtt client struct */
 static struct mqtt_client client;
 
-/* date time semaphore*/
+/* date time semaphore */
 static K_SEM_DEFINE(time_sem, 0, 1);
+
+/* measure wait semaphore */
+static K_SEM_DEFINE(measure_sem, 0, 1);
 
 static struct nrf_modem_gnss_pvt_data_frame last_pvt;
 static uint32_t time_to_fix;
@@ -49,6 +52,7 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 		if (ret) {
 			LOG_ERR("Publish failed: %d", ret);
 		}
+		set_state(STATE_MEASURE);
 	}
 }
 
@@ -58,6 +62,9 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 static int modem_configure(void)
 {
 	lte_lc_psm_req(true);
+
+	nrf_modem_at_printf("AT+CMEE=1");
+	nrf_modem_at_printf("AT+CNEC=24");
 
 	int err;
 
@@ -78,18 +85,6 @@ static void date_time_evt_handler(const struct date_time_evt *evt)
 	}
 }
 
-static void ttff_test_got_fix_work_fn(struct k_work *item)
-{
-	LOG_INF("Time to fix: %u", time_to_fix);
-	int ret = snprintf(output_buf, sizeof(output_buf), "ttf: %u", time_to_fix);
-	if (ret > 0) {
-		_mqtt_data_publish(&client, output_buf);
-	}
-	set_state(STATE_INIT);
-}
-static struct k_work_delayable ttff_test_got_fix_work;
-static K_WORK_DELAYABLE_DEFINE(ttff_test_got_fix_work, ttff_test_got_fix_work_fn);
-
 static void gnss_event_handler(int event)
 {
 	int retval;
@@ -97,12 +92,13 @@ static void gnss_event_handler(int event)
 	case NRF_MODEM_GNSS_EVT_PVT:
 		retval = nrf_modem_gnss_read(&last_pvt, sizeof(last_pvt), NRF_MODEM_GNSS_DATA_PVT);
 		if (retval == 0) {
-			LOG_INF("PVT received");
+			LOG_INF("PVT received, flags: 0x%02x", last_pvt.flags);
 		}
 		break;
 	case NRF_MODEM_GNSS_EVT_FIX:
 		time_to_fix = (k_uptime_get() - fix_timestamp) / 1000;
-		k_work_reschedule(&ttff_test_got_fix_work, K_MSEC(100));
+		LOG_INF("Time to fix: %u", time_to_fix);
+		k_sem_give(&measure_sem);
 		break;
 	default:
 		break;
@@ -145,8 +141,8 @@ int gnss_test(void) {
 
 	LOG_INF("Starting GNSS test");
 
-	if (lte_lc_func_mode_set(LTE_LC_FUNC_MODE_DEACTIVATE_LTE) != 0) {
-		LOG_ERR("Failed to return to power off modem");
+	if ((ret = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_DEACTIVATE_LTE))) {
+		LOG_ERR("Failed to return to power off modem %d", ret);
 	}
 
 	if ((ret = lte_lc_func_mode_set(LTE_LC_FUNC_MODE_ACTIVATE_GNSS))) {
@@ -181,6 +177,7 @@ int gnss_test(void) {
 		return -1;
 	}
 	fix_timestamp = k_uptime_get();
+	time_to_fix = 0;
 	return 0;
 }
 
@@ -233,19 +230,36 @@ void main(void)
 			}
 			ret = _mqtt_establish_connection(&client);
 			if (!ret) {
-				set_state(STATE_WAITING);
+				set_state(STATE_WAIT_FOR_COMMAND);
+				if (time_to_fix) {
+					ret = snprintf(output_buf, sizeof(output_buf),
+						       "ttf: %us", time_to_fix);
+					if (ret > 0) {
+						_mqtt_data_publish(&client, output_buf);
+					}
+				}
 			}
 			break;
-		case STATE_WAITING:
+		case STATE_WAIT_FOR_COMMAND:
 			ret = _mqtt_handle_connection(&client);
 			if (ret) {
 				set_state(STATE_CONNECT_MQTT);
 			}
 			break;
 		case STATE_MEASURE:
-			if (gnss_test()) {
-				set_state(STATE_INIT);
+			if ((ret = mqtt_disconnect(&client))) {
+				LOG_ERR("mqtt_disconnect failed: %d", ret);
 			}
+			if (gnss_test()){
+				set_state(STATE_INIT);
+			} else {
+				set_state(STATE_MEASURE_WAIT);
+			}
+			break;
+		case STATE_MEASURE_WAIT:
+			k_sem_take(&measure_sem, K_SECONDS(CONFIG_GNSS_TIMEOUT_S));
+			set_state(STATE_INIT);
+			break;
 		default:
 			break;
 		}
