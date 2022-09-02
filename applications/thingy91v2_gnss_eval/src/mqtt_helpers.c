@@ -362,17 +362,13 @@ int _mqtt_handle_connection(struct mqtt_client *client) {
 }
 
 
-static int publish(struct mqtt_client *client, const char *data, const char *topic) {
-
-	strncpy(payload_buf, data, ARRAY_SIZE(payload_buf));
-
+static int publish(struct mqtt_client *client, const char *data, const char *topic, size_t len) {
 	struct mqtt_publish_param param;
-
 	param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
 	param.message.topic.topic.utf8 = topic;
 	param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
-	param.message.payload.data = payload_buf;
-	param.message.payload.len = strlen(param.message.payload.data);
+	param.message.payload.data = data;
+	param.message.payload.len = len;
 	param.message_id = sys_rand32_get();
 	param.dup_flag = 0;
 	param.retain_flag = 0;
@@ -382,11 +378,17 @@ static int publish(struct mqtt_client *client, const char *data, const char *top
 
 int _mqtt_data_publish(struct mqtt_client *client, const char *data)
 {
-	return publish(client, data, data_topic);
+	strncpy(payload_buf, data, ARRAY_SIZE(payload_buf));
+	return publish(client, payload_buf, data_topic, strlen(payload_buf));
 }
 
+int _mqtt_data_publish_raw(struct mqtt_client *client, const char *data, size_t len)
+{
+	return publish(client, data, data_topic, len);
+}
 
 int _mqtt_status_publish(struct mqtt_client *client, const char *data)
 {
-	return publish(client, data, status_topic);
+	strncpy(payload_buf, data, ARRAY_SIZE(payload_buf));
+	return publish(client, payload_buf, status_topic, strlen(payload_buf));
 }

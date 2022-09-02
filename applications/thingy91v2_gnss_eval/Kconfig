@@ -39,11 +39,11 @@ config MQTT_BROKER_PORT
 
 config MQTT_MESSAGE_BUFFER_SIZE
 	int "MQTT message buffer size"
-	default 128
+	default 512
 
 config MQTT_PAYLOAD_BUFFER_SIZE
 	int "MQTT payload buffer size"
-	default 128
+	default 512
 
 config MQTT_RECONNECT_DELAY_S
 	int "Seconds to delay before attempting to reconnect to the broker."

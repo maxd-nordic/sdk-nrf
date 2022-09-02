@@ -29,7 +29,9 @@ static K_SEM_DEFINE(time_sem, 0, 1);
 /* measure wait semaphore */
 static K_SEM_DEFINE(measure_sem, 0, 1);
 
-static struct nrf_modem_gnss_pvt_data_frame last_pvt;
+static struct nrf_modem_gnss_pvt_data_frame pvts[CONFIG_GNSS_TIMEOUT_S+1];
+static size_t pvts_idx = 0;
+static size_t pvts_send_idx = 0;
 static uint32_t time_to_fix;
 static uint64_t fix_timestamp;
 
@@ -92,22 +94,23 @@ static void gnss_event_handler(int event)
 	int retval;
 	switch (event) {
 	case NRF_MODEM_GNSS_EVT_PVT:
-		retval = nrf_modem_gnss_read(&last_pvt, sizeof(last_pvt), NRF_MODEM_GNSS_DATA_PVT);
+		retval = nrf_modem_gnss_read(&pvts[pvts_idx], sizeof(pvts[pvts_idx]), NRF_MODEM_GNSS_DATA_PVT);
 		if (retval == 0) {
 			LOG_INF("PVT received, flags: 0x%02x, sv:%d%d%d%d%d%d%d%d%d%d%d%d",
-			last_pvt.flags,
-			last_pvt.sv[0].flags,
-			last_pvt.sv[1].flags,
-			last_pvt.sv[2].flags,
-			last_pvt.sv[3].flags,
-			last_pvt.sv[4].flags,
-			last_pvt.sv[5].flags,
-			last_pvt.sv[6].flags,
-			last_pvt.sv[7].flags,
-			last_pvt.sv[8].flags,
-			last_pvt.sv[9].flags,
-			last_pvt.sv[10].flags,
-			last_pvt.sv[11].flags);
+				pvts[pvts_idx].flags,
+				pvts[pvts_idx].sv[0].flags,
+				pvts[pvts_idx].sv[1].flags,
+				pvts[pvts_idx].sv[2].flags,
+				pvts[pvts_idx].sv[3].flags,
+				pvts[pvts_idx].sv[4].flags,
+				pvts[pvts_idx].sv[5].flags,
+				pvts[pvts_idx].sv[6].flags,
+				pvts[pvts_idx].sv[7].flags,
+				pvts[pvts_idx].sv[8].flags,
+				pvts[pvts_idx].sv[9].flags,
+				pvts[pvts_idx].sv[10].flags,
+				pvts[pvts_idx].sv[11].flags);
+			pvts_idx++;
 		}
 		break;
 	case NRF_MODEM_GNSS_EVT_FIX:
@@ -263,6 +266,15 @@ void main(void)
 					time_to_fix = 0;
 				}
 			}
+			while (pvts_send_idx < pvts_idx) {
+				ret = _mqtt_data_publish_raw(&client,
+					(const uint8_t*) &pvts[pvts_send_idx],
+					sizeof(struct nrf_modem_gnss_pvt_data_frame));
+				if (ret) {
+					break;
+				}
+				pvts_send_idx++;
+			}
 			ret = _mqtt_handle_connection(&client);
 			if (ret) {
 				set_state(STATE_CONNECT_MQTT);
@@ -272,6 +284,8 @@ void main(void)
 			if ((ret = mqtt_disconnect(&client))) {
 				LOG_ERR("mqtt_disconnect failed: %d", ret);
 			}
+			pvts_idx = 0;
+			pvts_send_idx = 0;
 			if (gnss_test()){
 				set_state(STATE_INIT);
 			} else {

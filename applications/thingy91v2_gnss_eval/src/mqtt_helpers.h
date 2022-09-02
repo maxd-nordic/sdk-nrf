@@ -17,3 +17,5 @@ int _mqtt_data_publish(struct mqtt_client *, const char *);
 /**@brief Function to publish status on the configured topic
  */
 int _mqtt_status_publish(struct mqtt_client *, const char *);
+
+int _mqtt_data_publish_raw(struct mqtt_client *, const char *, size_t);
