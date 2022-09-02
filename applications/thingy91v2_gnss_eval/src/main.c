@@ -140,11 +140,6 @@ static int ttff_test_force_cold_start(void)
 		      NRF_MODEM_GNSS_DELETE_UTC_DATA |
 		      NRF_MODEM_GNSS_DELETE_GPS_TOW_PRECISION;
 
-	/* With minimal assistance, we want to keep the factory almanac. */
-	if (IS_ENABLED(CONFIG_GNSS_SAMPLE_ASSISTANCE_MINIMAL)) {
-		delete_mask &= ~NRF_MODEM_GNSS_DELETE_ALMANACS;
-	}
-
 	err = nrf_modem_gnss_nv_data_delete(delete_mask);
 	if (err) {
 		LOG_ERR("Failed to delete GNSS data");
