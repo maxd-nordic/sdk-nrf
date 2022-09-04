@@ -15,6 +15,7 @@
 
 #include "app.h"
 #include "mqtt_helpers.h"
+#include "tones.h"
 
 LOG_MODULE_REGISTER(gnss_eval, CONFIG_GNSS_EVAL_LOG_LEVEL);
 
@@ -248,6 +249,7 @@ void main(void)
 			}
 			ret = _mqtt_establish_connection(&client);
 			if (!ret) {
+				boop();
 				set_state(STATE_WAIT_FOR_COMMAND);
 			}
 			break;
@@ -276,6 +278,7 @@ void main(void)
 			}
 			break;
 		case STATE_MEASURE:
+			beep();
 			if ((ret = mqtt_disconnect(&client))) {
 				LOG_ERR("mqtt_disconnect failed: %d", ret);
 			}
@@ -290,7 +293,10 @@ void main(void)
 		case STATE_MEASURE_WAIT:
 			ret = k_sem_take(&measure_sem, K_SECONDS(CONFIG_GNSS_TIMEOUT_S));
 			if (ret) {
+				gameover();
 				LOG_ERR("GNSS timeout reached: %s", (ret==-EAGAIN)?"-EAGAIN":"-EBUSY");
+			} else {
+				coin();
 			}
 			set_state(STATE_INIT);
 			break;

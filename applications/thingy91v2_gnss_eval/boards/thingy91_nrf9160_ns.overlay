@@ -1,0 +1,7 @@
+/ {
+        pwmleds {
+                buzzer_pwm: buzzer_pwm {
+			pwms = <&pwm1 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+		};
+        };
+};
