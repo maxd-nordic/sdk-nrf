@@ -9,7 +9,6 @@
 
 #include <nrf_modem_at.h>
 #include <modem/lte_lc.h>
-#include <dk_buttons_and_leds.h>
 #include <date_time.h>
 #include <nrf_modem_gnss.h>
 
@@ -17,8 +16,6 @@
 #include "mqtt_helpers.h"
 
 LOG_MODULE_REGISTER(gnss_eval, CONFIG_GNSS_EVAL_LOG_LEVEL);
-
-static uint8_t output_buf[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
 
 /* The mqtt client struct */
 static struct mqtt_client client;
@@ -32,8 +29,6 @@ static K_SEM_DEFINE(measure_sem, 0, 1);
 static struct nrf_modem_gnss_pvt_data_frame pvts[CONFIG_GNSS_TIMEOUT_S+1];
 static size_t pvts_idx = 0;
 static size_t pvts_send_idx = 0;
-static uint32_t time_to_fix;
-static uint64_t fix_timestamp;
 
 static uint32_t mqtt_connect_attempt;
 static enum state_type state;
@@ -50,11 +45,17 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 	if (has_changed & button_states & BIT(0)) {
 		int ret;
 
-		ret = _mqtt_status_publish(&client, "button");
-		if (ret) {
-			LOG_ERR("Publish failed: %d", ret);
+		if (state == STATE_WAIT_FOR_COMMAND) {
+			ret = _mqtt_status_publish(&client, "button");
+			if (ret) {
+				LOG_ERR("Publish failed: %d", ret);
+			}
+			set_state(STATE_MEASURE);
+		} else if (state == STATE_MEASURE_WAIT) {
+			if(!k_sem_count_get(&measure_sem)) {
+				k_sem_give(&measure_sem);
+			}
 		}
-		set_state(STATE_MEASURE);
 	}
 }
 
@@ -114,9 +115,9 @@ static void gnss_event_handler(int event)
 		}
 		break;
 	case NRF_MODEM_GNSS_EVT_FIX:
-		time_to_fix = (k_uptime_get() - fix_timestamp);
-		LOG_INF("Time to fix: %u", time_to_fix);
-		k_sem_give(&measure_sem);
+		if (IS_ENABLED(CONFIG_STOP_AFTER_FIRST_FIX)){
+			k_sem_give(&measure_sem);
+		}
 		break;
 	default:
 		break;
@@ -194,17 +195,10 @@ int gnss_test(void) {
 		LOG_ERR("Failed to start GNSS %d", ret);
 		return -1;
 	}
-	fix_timestamp = k_uptime_get();
-	time_to_fix = 0;
 	return 0;
 }
 
-#define STATE_INIT_COLOR		0b111 // white
-#define STATE_CONNECT_MQTT_COLOR	0b011 // cyan
-#define STATE_WAIT_FOR_COMMAND_COLOR	0b001 // green
-#define STATE_SEND_RESULTS_COLOR	0b010 // blue
-#define STATE_MEASURE_COLOR		0b110 // purple
-#define STATE_MEASURE_WAIT_COLOR	0b100 // red
+
 
 void main(void)
 {
@@ -262,16 +256,6 @@ void main(void)
 			}
 			break;
 		case STATE_WAIT_FOR_COMMAND:
-			dk_set_leds(STATE_WAIT_FOR_COMMAND_COLOR);
-			if (time_to_fix) {
-				output_buf[0] = 0;
-				ret = snprintf(output_buf, sizeof(output_buf),
-						"ttf: %ums", time_to_fix);
-				ret = _mqtt_data_publish(&client, output_buf);
-				if (!ret) {
-					time_to_fix = 0;
-				}
-			}
 			dk_set_leds(STATE_SEND_RESULTS_COLOR);
 			while (pvts_send_idx < pvts_idx) {
 				ret = _mqtt_data_publish_raw(&client,

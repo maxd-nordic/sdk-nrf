@@ -1,5 +1,14 @@
 #pragma once
 
+#define STATE_INIT_COLOR		0b111 // white
+#define STATE_CONNECT_MQTT_COLOR	0b011 // cyan
+#define STATE_WAIT_FOR_COMMAND_COLOR	0b001 // green
+#define STATE_SEND_RESULTS_COLOR	0b010 // blue
+#define STATE_MEASURE_COLOR		0b110 // purple
+#define STATE_MEASURE_WAIT_COLOR	0b100 // red
+#define STATE_COUNTDOWN_COLOR		0b101 // yellow
+#include <dk_buttons_and_leds.h>
+
 enum state_type {
 	STATE_INIT,
 	STATE_CONNECT_MQTT,

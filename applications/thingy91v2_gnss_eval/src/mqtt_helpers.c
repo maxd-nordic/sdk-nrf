@@ -223,6 +223,7 @@ static void mqtt_evt_handler(struct mqtt_client *const client,
 			int64_t now = 0; date_time_now(&now);
 			if (ret == 1) {
 				int64_t delta = (unix_time_s*1000)-now;
+				dk_set_leds(STATE_COUNTDOWN_COLOR);
 				LOG_INF("will wait %lld ms", delta);
 				if (delta > 0){
 					k_sleep(K_MSEC(delta));
@@ -367,7 +368,7 @@ static int publish(struct mqtt_client *client, const char *data, const char *top
 	param.message.topic.qos = MQTT_QOS_0_AT_MOST_ONCE;
 	param.message.topic.topic.utf8 = topic;
 	param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
-	param.message.payload.data = data;
+	param.message.payload.data = (uint8_t*) data;
 	param.message.payload.len = len;
 	param.message_id = sys_rand32_get();
 	param.dup_flag = 0;

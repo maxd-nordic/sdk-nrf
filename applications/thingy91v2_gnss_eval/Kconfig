@@ -58,6 +58,10 @@ config GNSS_TIMEOUT_S
 	default 600
 endmenu
 
+config STOP_AFTER_FIRST_FIX
+	bool "Stop measurement after getting the first fix"
+	default false
+
 menu "Zephyr Kernel"
 source "Kconfig.zephyr"
 endmenu
