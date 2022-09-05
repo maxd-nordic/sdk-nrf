@@ -38,18 +38,6 @@
 			gpios = <&gpio0 31 0>;
 			label = "RGB blue channel";
 		};
-		sense_red_led: led_4 {
-			gpios = <&gpio0 0 0>;
-			label = "RGB red channel";
-		};
-		sense_green_led: led_5 {
-			gpios = <&gpio0 1 0>;
-			label = "RGB green channel";
-		};
-		sense_blue_led: led_6 {
-			gpios = <&gpio0 2 0>;
-			label = "RGB blue channel";
-		};
 	};
 
 	pwmleds {
@@ -68,7 +56,7 @@
 	nrf52840_reset: gpio-reset {
 		compatible = "nordic,thingy91-nrf52840-reset";
 		status = "okay";
-		gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+		gpios = <&gpio0 20 GPIO_ACTIVE_LOW>;
 	};
 
 	aliases {
@@ -76,14 +64,10 @@
 		led0 = &red_led;
 		led1 = &green_led;
 		led2 = &blue_led;
-		sense-led0 = &sense_red_led;
-		sense-led1 = &sense_green_led;
-		sense-led2 = &sense_blue_led;
 		pwm-led0 = &pwm_led0;
 		pwm-led1 = &pwm_led1;
 		pwm-led2 = &pwm_led2;
 		rgb-pwm = &pwm0;
-		nmos-pwm = &pwm2;
 		mcuboot-button0 = &button0;
 	};
 };
@@ -116,14 +100,6 @@
 	pinctrl-names = "default", "sleep";
 };
 
-/* PWM2 is intended for NMOS transistor control */
-&pwm2 {
-	status = "okay";
-	pinctrl-0 = <&pwm2_default>;
-	pinctrl-1 = <&pwm2_sleep>;
-	pinctrl-names = "default", "sleep";
-};
-
 &i2c2 {
 	compatible = "nordic,nrf-twim";
 	status = "okay";
@@ -142,27 +118,20 @@
 		compatible = "rohm,bh1749";
 		label = "BH1749";
 		reg = <0x38>;
-		int-gpios = <&gpio0 27 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		int-gpios = <&gpio0 28 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 	};
 };
 
 &spi3 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
-	cs-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>, <&gpio0 7 GPIO_ACTIVE_LOW>;
+	cs-gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
 
 	pinctrl-0 = <&spi3_default>;
 	pinctrl-1 = <&spi3_sleep>;
 	pinctrl-names = "default", "sleep";
-	adxl362: adxl362@0 {
-		compatible = "adi,adxl362";
-		label = "ADXL362";
-		spi-max-frequency = <8000000>;
-		reg = <0>;
-		int1-gpios = <&gpio0 9 0>;
-	};
 
-	adxl372: adxl372@1 {
+	adxl372: adxl372@0 {
 		compatible = "adi,adxl372";
 		label = "ADXL372";
 		spi-max-frequency = <8000000>;
