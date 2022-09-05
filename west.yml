@@ -31,6 +31,8 @@ manifest:
       url-base: https://github.com/NordicSemiconductor
     - name: memfault
       url-base: https://github.com/memfault
+    - name: maxd
+      url-base: https://github.com/maxd-nordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -103,7 +105,8 @@ manifest:
       revision: 8c5ed9a2d35543bed588018353f7fd2106c0d2ae
     - name: mcuboot
       repo-path: sdk-mcuboot
-      revision: 74b34fe10bde956ddecd84104536dcb78a612e5f
+      remote: maxd
+      revision: b6c826005748b38bde5d265569ae709781ff9281
       path: bootloader/mcuboot
     - name: mbedtls-nrf
       path: mbedtls
