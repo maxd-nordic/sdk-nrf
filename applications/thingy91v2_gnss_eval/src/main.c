@@ -199,12 +199,20 @@ int gnss_test(void) {
 	return 0;
 }
 
+#define STATE_INIT_COLOR		0b111 // white
+#define STATE_CONNECT_MQTT_COLOR	0b011 // cyan
+#define STATE_WAIT_FOR_COMMAND_COLOR	0b001 // green
+#define STATE_SEND_RESULTS_COLOR	0b010 // blue
+#define STATE_MEASURE_COLOR		0b110 // purple
+#define STATE_MEASURE_WAIT_COLOR	0b100 // red
+
 void main(void)
 {
 	int ret;
 
 	/* one-time setup */
 	date_time_register_handler(date_time_evt_handler);
+	dk_leds_init();
 	dk_buttons_init(button_handler);
 
 	/* modem state cleanup */
@@ -218,6 +226,7 @@ void main(void)
 		switch (state)
 		{
 		case STATE_INIT:
+			dk_set_leds(STATE_INIT_COLOR);
 			/* LTE connect */
 			ret = modem_configure();
 			if (ret) {
@@ -241,6 +250,7 @@ void main(void)
 			set_state(STATE_CONNECT_MQTT);
 			break;
 		case STATE_CONNECT_MQTT:
+			dk_set_leds(STATE_CONNECT_MQTT_COLOR);
 			if (mqtt_connect_attempt++ > 0) {
 				LOG_INF("Reconnecting in %d seconds...",
 					CONFIG_MQTT_RECONNECT_DELAY_S);
@@ -252,6 +262,7 @@ void main(void)
 			}
 			break;
 		case STATE_WAIT_FOR_COMMAND:
+			dk_set_leds(STATE_WAIT_FOR_COMMAND_COLOR);
 			if (time_to_fix) {
 				output_buf[0] = 0;
 				ret = snprintf(output_buf, sizeof(output_buf),
@@ -261,6 +272,7 @@ void main(void)
 					time_to_fix = 0;
 				}
 			}
+			dk_set_leds(STATE_SEND_RESULTS_COLOR);
 			while (pvts_send_idx < pvts_idx) {
 				ret = _mqtt_data_publish_raw(&client,
 					(const uint8_t*) &pvts[pvts_send_idx],
@@ -270,12 +282,14 @@ void main(void)
 				}
 				pvts_send_idx++;
 			}
+			dk_set_leds(STATE_WAIT_FOR_COMMAND_COLOR);
 			ret = _mqtt_handle_connection(&client);
 			if (ret) {
 				set_state(STATE_CONNECT_MQTT);
 			}
 			break;
 		case STATE_MEASURE:
+			dk_set_leds(STATE_MEASURE_COLOR);
 			if ((ret = mqtt_disconnect(&client))) {
 				LOG_ERR("mqtt_disconnect failed: %d", ret);
 			}
@@ -288,6 +302,7 @@ void main(void)
 			}
 			break;
 		case STATE_MEASURE_WAIT:
+			dk_set_leds(STATE_MEASURE_WAIT_COLOR);
 			ret = k_sem_take(&measure_sem, K_SECONDS(CONFIG_GNSS_TIMEOUT_S));
 			if (ret) {
 				LOG_ERR("GNSS timeout reached: %s", (ret==-EAGAIN)?"-EAGAIN":"-EBUSY");
