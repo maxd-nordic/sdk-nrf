@@ -393,3 +393,11 @@ int _mqtt_status_publish(struct mqtt_client *client, const char *data)
 	strncpy(payload_buf, data, ARRAY_SIZE(payload_buf));
 	return publish(client, payload_buf, status_topic, strlen(payload_buf));
 }
+
+
+int _mqtt_command_publish(struct mqtt_client *client, int64_t time_s)
+{
+	char buf[100] = {0};
+	snprintf(buf, ARRAY_SIZE(buf),"%.0f", (double)time_s);
+	return publish(client, buf, COMMAND_TOPIC, strlen(buf));
+}

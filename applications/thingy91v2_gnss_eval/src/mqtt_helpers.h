@@ -19,3 +19,5 @@ int _mqtt_data_publish(struct mqtt_client *, const char *);
 int _mqtt_status_publish(struct mqtt_client *, const char *);
 
 int _mqtt_data_publish_raw(struct mqtt_client *, const char *, size_t);
+
+int _mqtt_command_publish(struct mqtt_client *, int64_t);

@@ -46,11 +46,11 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 		int ret;
 
 		if (state == STATE_WAIT_FOR_COMMAND) {
-			ret = _mqtt_status_publish(&client, "button");
+			int64_t now_ms = 0; date_time_now(&now_ms);
+			ret = _mqtt_command_publish(&client, now_ms/1000+30);
 			if (ret) {
-				LOG_ERR("Publish failed: %d", ret);
+				LOG_ERR("command publish failed: %d", ret);
 			}
-			set_state(STATE_MEASURE);
 		} else if (state == STATE_MEASURE_WAIT) {
 			if(!k_sem_count_get(&measure_sem)) {
 				k_sem_give(&measure_sem);
@@ -115,6 +115,7 @@ static void gnss_event_handler(int event)
 		}
 		break;
 	case NRF_MODEM_GNSS_EVT_FIX:
+		dk_set_leds(STATE_GOT_FIX_COLOR);
 		if (IS_ENABLED(CONFIG_STOP_AFTER_FIRST_FIX)){
 			k_sem_give(&measure_sem);
 		}
