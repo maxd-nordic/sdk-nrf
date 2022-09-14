@@ -11,6 +11,7 @@
 #include <modem/lte_lc.h>
 #include <date_time.h>
 #include <nrf_modem_gnss.h>
+#include <modem/modem_info.h>
 
 #include "app.h"
 #include "mqtt_helpers.h"
@@ -204,6 +205,8 @@ int gnss_test(void) {
 void main(void)
 {
 	int ret;
+	bool send_connection_data = true;
+	struct connection_data_type connection_data = {0};
 
 	/* one-time setup */
 	date_time_register_handler(date_time_evt_handler);
@@ -214,6 +217,9 @@ void main(void)
 	nrf_modem_gnss_stop();
 	if (lte_lc_func_mode_set(LTE_LC_FUNC_MODE_POWER_OFF) != 0) {
 		LOG_ERR("Failed to return to power off modem");
+	}
+	if (modem_info_init() != 0) {
+		LOG_ERR("Failed to initialized modem_info");
 	}
 
 
@@ -242,6 +248,7 @@ void main(void)
 				LOG_ERR("mqtt client_init: %d", ret);
 				continue;
 			}
+			send_connection_data = true;
 			set_state(STATE_CONNECT_MQTT);
 			break;
 		case STATE_CONNECT_MQTT:
@@ -258,6 +265,20 @@ void main(void)
 			break;
 		case STATE_WAIT_FOR_COMMAND:
 			dk_set_leds(STATE_SEND_RESULTS_COLOR);
+			if (send_connection_data){
+				modem_info_string_get(MODEM_INFO_CELLID,
+						      connection_data.cellid,
+						      ARRAY_SIZE(connection_data.cellid));
+				modem_info_short_get(MODEM_INFO_CUR_BAND, &connection_data.band);
+				modem_info_short_get(MODEM_INFO_RSRP, &connection_data.rsrp);
+				modem_info_short_get(MODEM_INFO_BATTERY, &connection_data.vbatt);
+				ret = _mqtt_data_publish_raw(&client,
+					(const uint8_t*) &connection_data,
+					sizeof(struct connection_data_type));
+				if (!ret) {
+					send_connection_data = false;
+				}
+			}
 			while (pvts_send_idx < pvts_idx) {
 				ret = _mqtt_data_publish_raw(&client,
 					(const uint8_t*) &pvts[pvts_send_idx],
@@ -274,6 +295,7 @@ void main(void)
 			}
 			break;
 		case STATE_MEASURE:
+			date_time_now(&connection_data.last_measure_ms);
 			dk_set_leds(STATE_MEASURE_COLOR);
 			if ((ret = mqtt_disconnect(&client))) {
 				LOG_ERR("mqtt_disconnect failed: %d", ret);

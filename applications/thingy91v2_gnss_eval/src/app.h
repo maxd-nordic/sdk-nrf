@@ -19,4 +19,14 @@ enum state_type {
 	STATE_MEASURE_WAIT,
 };
 
+struct connection_data_type
+{
+	int64_t last_measure_ms;
+	uint16_t band;
+	uint16_t rsrp;
+	char cellid[10];
+	uint16_t vbatt;
+};
+
+
 void set_state(enum state_type);

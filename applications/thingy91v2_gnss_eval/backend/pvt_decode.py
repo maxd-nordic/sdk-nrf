@@ -4,6 +4,13 @@ import struct
 import datetime
 import logging
 
+class ConnectionData:
+    def __init__(self, raw: bytes) -> None:
+        assert(len(raw) == 24)
+        self.last_measure, self.band, self.rsrp, self.cellid, self.vbatt = struct.unpack(
+            "<qHH10sH", raw)
+        self.cellid = self.cellid.decode("ASCII").strip('\x00')
+
 class SV:
     def __init__(self, raw: bytes) -> None:
         assert(len(raw) == 12)
@@ -21,7 +28,7 @@ class PVT:
             struct.unpack("<HBBBBBxH", self.datetime)
         self.datetime = datetime.datetime(year, month, day, hour,
                                           minute, seconds, microsecond=millis*1000)
-        self.datetime = self.datetime.isoformat()
+        self.datetime = int(self.datetime.timestamp()*1000)
 
     def decode_svs(self) -> None:
         assert(len(self.svs) == 144)
