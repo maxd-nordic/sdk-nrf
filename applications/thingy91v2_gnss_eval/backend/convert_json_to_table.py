@@ -1,17 +1,30 @@
 #!/usr/bin/env python3
 
-from pvt_decode import PVT, ConnectionData
-from collections import defaultdict
 import jsonpickle
-import sys
 import pandas as pd
+import argparse
 
 if __name__== '__main__':
-	if len(sys.argv) != 2:
-		sys.exit(1)
-	input_filename = sys.argv[1]
+	parser = argparse.ArgumentParser(
+		description='Convert output of backend.py to a tabular format',
+	)
+	parser.add_argument(
+		'file',
+		type=str,
+		help='JSON input file',
+		metavar='FILE',
+	)
+	parser.add_argument(
+		'--format',
+		type=str,
+		default='csv',
+		choices=['csv', 'hdf5', 'pkl', 'parquet'],
+		help='output format',
+		metavar='FORMAT',
+	)
+	args = parser.parse_args()
 
-	with open(input_filename, "r") as f:
+	with open(args.file, "r") as f:
 		input_str = f.read()
 	input_data = jsonpickle.loads(input_str)
 
@@ -88,10 +101,28 @@ if __name__== '__main__':
 			for device_id, c in input_data['connection_data']],
 		columns=["device_id", "measure_start_ms", "band", "rsrp", "cell_id", "vbatt"])
 
-	# export dataframes
-	output_filename = input_filename.strip(".json") + ".hdf5"
-	pvt_df.to_hdf(output_filename, "pvt")
-	sv_df.to_hdf(output_filename, "sv")
-	connection_data_df.to_hdf(output_filename, "connection_data")
-
+	if args.format == 'hdf5':
+		# export dataframes to hdf5
+		output_filename = args.file.strip(".json") + ".hdf5"
+		pvt_df.to_hdf(output_filename, "pvt")
+		sv_df.to_hdf(output_filename, "sv")
+		connection_data_df.to_hdf(output_filename, "connection_data")
+	elif args.format == 'csv':
+		# export dataframes to CSV
+		output_prefix = args.file.strip(".json")
+		pvt_df.to_csv("%s-pvt.csv" % output_prefix)
+		sv_df.to_csv("%s-sv.csv" % output_prefix)
+		connection_data_df.to_csv("%s-conn.csv" % output_prefix)
+	elif args.format == 'pkl':
+		# export dataframes to pickle 4
+		output_prefix = args.file.strip(".json")
+		pvt_df.to_pickle("%s-pvt.pkl" % output_prefix, protocol=4)
+		sv_df.to_pickle("%s-sv.pkl" % output_prefix, protocol=4)
+		connection_data_df.to_pickle("%s-conn.pkl" % output_prefix, protocol=4)
+	elif args.format == 'parquet':
+		# export dataframes to parquet
+		output_prefix = args.file.strip(".json")
+		pvt_df.to_parquet("%s-pvt.gzip" % output_prefix, compression='gzip')
+		sv_df.to_parquet("%s-sv.gzip" % output_prefix, compression='gzip')
+		connection_data_df.to_parquet("%s-conn.gzip" % output_prefix, compression='gzip')
 
