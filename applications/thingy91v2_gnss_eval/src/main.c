@@ -60,6 +60,29 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 	}
 }
 
+bool test_modem_fw_ver(const char *should)
+{
+	int ret;
+	char buf[41] = {0};
+	char format[23] = {0};
+
+	sprintf(format, "%%%%SHORTSWVER: %%%d[^\r\n]", ARRAY_SIZE(buf));
+
+	ret = nrf_modem_at_scanf("AT%SHORTSWVER",
+				 format,
+				 buf);
+
+	if (ret != 1) {
+		LOG_ERR("Could not get FW version, error: %d", ret);
+		return false;
+	}
+	if (strcmp(should, buf) != 0){
+		LOG_ERR("Modem firmware is [%s], but should be [%s]", buf, should);
+		return false;
+	}
+	return true;
+}
+
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
@@ -221,7 +244,15 @@ void main(void)
 	if (modem_info_init() != 0) {
 		LOG_ERR("Failed to initialized modem_info");
 	}
-
+	if (!test_modem_fw_ver("nrf9160_1.3.2")) {
+		while (true)
+		{
+			dk_set_leds(STATE_INIT_COLOR);
+			k_sleep(K_SECONDS(1));
+			dk_set_leds(0);
+			k_sleep(K_SECONDS(1));
+		}
+	}
 
 	while (true) {
 		switch (state)
