@@ -90,6 +90,7 @@ static int modem_configure(void)
 {
 	lte_lc_psm_req(true);
 
+	// enable more detailed error messages
 	nrf_modem_at_printf("AT+CMEE=1");
 	nrf_modem_at_printf("AT+CNEC=24");
 
@@ -103,6 +104,8 @@ static int modem_configure(void)
 		LOG_INF("Failed to establish LTE connection: %d", err);
 		return err;
 	}
+	// force provider to Telenor
+	nrf_modem_at_printf("AT+COPS=1,2,\"24201\"");
 	LOG_INF("LTE Link Connected!");
 	return 0;
 }
