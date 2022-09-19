@@ -8,7 +8,7 @@ import signal
 
 topic_prefix = "45adb858-13f4-11ed-882f-97c94111fe8a"
 sampling_period = 300
-sync_time = 30
+sync_time = 120
 
 def on_shutdown(signum, frame):
     sys.exit(0)
