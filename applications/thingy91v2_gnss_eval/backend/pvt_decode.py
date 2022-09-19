@@ -10,6 +10,7 @@ class ConnectionData:
         self.last_measure, self.band, self.rsrp, self.cellid, self.vbatt = struct.unpack(
             "<qHH10sH", raw)
         self.cellid = self.cellid.decode("ASCII").strip('\x00')
+        self.last_measure = self.last_measure//1000*1000
 
 class SV:
     def __init__(self, raw: bytes) -> None:
