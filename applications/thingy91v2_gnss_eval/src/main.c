@@ -202,6 +202,11 @@ int gnss_test(void) {
 		return -1;
 	}
 
+	if ((ret = nrf_modem_gnss_fix_interval_set(1))) {
+		LOG_ERR("Failed to set GNSS fix interval %d", ret);
+		return -1;
+	}
+
 	uint8_t use_case = NRF_MODEM_GNSS_USE_CASE_MULTIPLE_HOT_START;
 	if ((ret = nrf_modem_gnss_use_case_set(use_case))) {
 		LOG_ERR("Failed to set GNSS use case %d", ret);
