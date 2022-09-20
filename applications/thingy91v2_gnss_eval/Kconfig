@@ -55,6 +55,10 @@ config LTE_CONNECT_RETRY_DELAY_S
 
 config GNSS_TIMEOUT_S
 	int "Seconds to delay before giving up on obtaining a fix."
+	default 120
+
+config WATCHDOG_TIMEOUT_S
+	int "Seconds to wait for application to catch up before restarting"
 	default 600
 endmenu
 

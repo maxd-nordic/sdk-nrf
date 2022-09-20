@@ -5,6 +5,8 @@
  */
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/watchdog.h>
 #include <stdio.h>
 
 #include <nrf_modem_at.h>
@@ -33,6 +35,9 @@ static size_t pvts_send_idx = 0;
 
 static uint32_t mqtt_connect_attempt;
 static enum state_type state;
+
+const struct device *wdt = DEVICE_DT_GET(DT_NODELABEL(wdt));
+static int wdt_channel;
 
 void set_state(enum state_type _state) {
 	state = _state;
@@ -231,6 +236,36 @@ int gnss_test(void) {
 	return 0;
 }
 
+void configure_wdt(void)
+{
+	int ret;
+	if (!device_is_ready(wdt)) {
+		LOG_ERR("Watchdog device not ready");
+		return;
+	}
+
+	static const struct wdt_timeout_cfg wdt_settings = {
+		.window = {
+			.min = 0,
+			.max = CONFIG_WATCHDOG_TIMEOUT_S * 1000,
+		},
+		.callback = NULL,
+		.flags = WDT_FLAG_RESET_SOC
+	};
+
+	ret = wdt_install_timeout(wdt, &wdt_settings);
+	if (ret < 0) {
+		LOG_ERR("wdt_install_timeout failed: %d", ret);
+		return;
+	}
+	wdt_channel = ret;
+
+	ret = wdt_setup(wdt, WDT_OPT_PAUSE_HALTED_BY_DBG);
+	if (ret) {
+		LOG_ERR("wdt_setup failed: %d", ret);
+	}
+}
+
 
 
 void main(void)
@@ -261,6 +296,8 @@ void main(void)
 			k_sleep(K_SECONDS(1));
 		}
 	}
+
+	configure_wdt();
 
 	while (true) {
 		switch (state)
@@ -304,6 +341,7 @@ void main(void)
 			break;
 		case STATE_WAIT_FOR_COMMAND:
 			dk_set_leds(STATE_SEND_RESULTS_COLOR);
+			wdt_feed(wdt, wdt_channel);
 			if (send_connection_data){
 				modem_info_string_get(MODEM_INFO_CELLID,
 						      connection_data.cellid,
