@@ -66,6 +66,10 @@ config STOP_AFTER_FIRST_FIX
 	bool "Stop measurement after getting the first fix"
 	default false
 
+config APP_LOW_POWER_MODE
+	bool "Disable LEDs"
+	default false
+
 menu "Zephyr Kernel"
 source "Kconfig.zephyr"
 endmenu
