@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+from typing import DefaultDict
 import jsonpickle
 import pandas as pd
 import argparse
+
+provide_filtered_result = True
 
 if __name__== '__main__':
 	parser = argparse.ArgumentParser(
@@ -32,7 +35,7 @@ if __name__== '__main__':
 		# indices to get to the individual sv entry
 		"device_id", "measure_start_ms", "pvt_idx", "sv_idx",
 		# actual sv entry data
-		"sv", "signal", "cn0", "elevation", "azimuth", "flags"]
+		"sv", "signal", "cn0", "elevation", "azimuth", "sv_flags"]
 	sv_list = []
 
 	pvt_columns = [
@@ -55,15 +58,58 @@ if __name__== '__main__':
 		"hdop",
 		"vdop",
 		"tdop",
-		"flags",
+		"pvt_flags",
 		"execution_time"
 	]
+
+	device_measure_count = DefaultDict(int)
+	for device_id, c in input_data['connection_data']:
+		if c.last_measure == 0:
+			continue
+		device_measure_count[device_id] += 1
+
+	# filter out non-active devices
+	device_threshold = max(device_measure_count.values()) / 2
+	device_blacklist = []
+	for k,v in device_measure_count.items():
+		if v < device_threshold:
+			print("[%s] was added to blacklist" % k)
+			device_blacklist.append(k)
+	
+	devices = list(set(device_measure_count.keys()).difference(device_blacklist))
+	spurious_measurements = set()
+	incomplete_measurements = set()
+	measurements = set()
+	# filter out spurious pvt entries
+	for measure_id, devs in input_data['pvts'].items():
+		for d in devices:
+			if d not in devs.keys():
+				incomplete_measurements.add(measure_id)
+		measurements.add(measure_id)
+		for device_id, pvts in devs.items():
+			if len(pvts) != 120:
+				spurious_measurements.add(measure_id)
+			for pvt_idx, pvt in enumerate(pvts):
+				if pvt_idx*1000 != pvt.execution_time:
+					#print("warn: mismatched idx %s %s %d * 1000 != %d" % (measure_id, device_id, pvt_idx, pvt.execution_time))
+					spurious_measurements.add(measure_id)
+	print(spurious_measurements)
+	print(measurements)
+	print("%d/%d measurements are spurious" %(len(spurious_measurements), len(measurements)))
+	# filter out entries where not all devices were active
+	measurements_all_present = measurements.difference(spurious_measurements).difference(incomplete_measurements)
+	print("%d/%d measurements are complete and non-spurious" %(len(measurements_all_present), len(measurements)))
+
 
 	pvt_list = []
 
 	# read out all the data rows
 	for measure_id, devs in input_data['pvts'].items():
+		if provide_filtered_result and measure_id not in measurements_all_present:
+			continue
 		for device_id, pvts in devs.items():
+			if device_id in device_blacklist:
+				continue
 			for pvt_idx, pvt in enumerate(pvts):
 				pvt_list.append([
 					device_id, measure_id, pvt_idx,
