@@ -139,6 +139,11 @@ if __name__== '__main__':
 						sv.elevation, sv.azimuth, sv.flags
 					])
 
+	input_data['connection_data'] = list(filter(
+		lambda device_id, c:
+		(c.last_measure in measurements_all_present) and (device_id not in device_blacklist),
+		input_data['connection_data']))
+
 	# create dataframes
 	pvt_df = pd.DataFrame(data=pvt_list, columns=pvt_columns)
 	sv_df = pd.DataFrame(data=sv_list, columns=sv_columns)
