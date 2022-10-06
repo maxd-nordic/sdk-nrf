@@ -17,7 +17,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, on_shutdown)
     client = mqtt.Client()
     while True:
-        client.connect("mqtt.eclipseprojects.io", 1883, 60)
+        client.connect("test.mosquitto.org", 1883, 60)
 
         current_time_s = int(time.time())
         print("%d: next sample in %ds" % (current_time_s, sync_time))
