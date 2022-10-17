@@ -20,8 +20,7 @@ if (CONFIG_NFC_T4T_ISODEP OR
 endif()
 
 
-if (CONFIG_NFC_T2T_NRFXLIB OR
-    CONFIG_NFC_T4T_NRFXLIB)
+if (CONFIG_NFC_PLATFORM)
 	add_subdirectory(lib)
 endif()
 
