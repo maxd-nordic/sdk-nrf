@@ -10,7 +10,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(asset_tracker_v2)
 
 # NORDIC SDK APP START
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.c src/tones.c)
 # NORDIC SDK APP END
 
 # Include source directory

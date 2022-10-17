@@ -120,9 +120,11 @@ static void accelerometer_trigger_handler(const struct device *dev,
 		if (trig->type == SENSOR_TRIG_MOTION) {
 			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ACT_TRIGGER;
 			LOG_DBG("Activity detected");
+			beep();
 		} else {
 			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_INACT_TRIGGER;
 			LOG_DBG("Inactivity detected");
+			boop();
 		}
 		evt_handler(&evt);
 
@@ -158,6 +160,7 @@ static void impact_trigger_handler(const struct device *dev,
 				 pow(sensor_ms2_to_g(&data[2]), 2.0));
 
 		LOG_DBG("Detected impact of %6.2f g\n", evt.value);
+		gameover();
 
 		if (evt.value > 0.0) {
 			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_IMPACT_TRIGGER;

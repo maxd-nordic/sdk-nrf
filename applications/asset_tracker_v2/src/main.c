@@ -618,6 +618,7 @@ void main(void)
 		LOG_ERR("Failed starting module, error: %d", err);
 		SEND_ERROR(app, APP_EVT_ERROR, err);
 	}
+	coin();
 
 	while (true) {
 		module_get_next_msg(&self, &msg);
