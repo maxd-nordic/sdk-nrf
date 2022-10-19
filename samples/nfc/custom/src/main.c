@@ -98,13 +98,12 @@ static int start_nfc(void)
 	nfc_platform_setup();
 
 	uint8_t uid[4] = {0xde, 0xad, 0xbe, 0xef};
-	nrfx_nfct_nfcid1_t uid_struct =  {
-		.id_size = NRFX_NFCT_NFCID1_SINGLE_SIZE,
-		.p_id = uid,
-	};
 	nrfx_nfct_param_t uid_param = {
 		.id = NRFX_NFCT_PARAM_ID_NFCID1,
-		.data = &uid_struct,
+		.data.nfcid1 = {
+			.id_size = NRFX_NFCT_NFCID1_SINGLE_SIZE,
+			.p_id = uid,
+		},
 	};
 	nrfx_nfct_parameter_set(&uid_param);
 	NRF_NFCT->SELRES = 0x08;
