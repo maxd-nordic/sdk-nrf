@@ -23,6 +23,8 @@
 #include <dk_buttons_and_leds.h>
 #include <nrfx_nfct.h>
 
+#include "memory.h"
+
 #define SYSTEM_OFF_DELAY_S	3
 
 #define MAX_REC_COUNT		1
@@ -41,9 +43,21 @@ static const nrfx_nfct_data_desc_t rx_buffer_param =
 	.p_data    = rx_buffer,
 	.data_size = ARRAY_SIZE(rx_buffer)
 };
+static volatile uint8_t tx_buffer[16];
+static nrfx_nfct_data_desc_t tx_buffer_param =
+{
+	.p_data    = tx_buffer,
+	.data_size = ARRAY_SIZE(tx_buffer)
+};
 
 static void handle_command(nrfx_nfct_evt_rx_frameend_t const * p_rx_frameend) {
-	printk("command: 0x%02X\n", p_rx_frameend->rx_data.p_data[0]);
+	const uint8_t command = p_rx_frameend->rx_data.p_data[0];
+	const uint32_t length = p_rx_frameend->rx_data.data_size;
+	printk("command: 0x%02X %02X, length: %d\n", command, p_rx_frameend->rx_data.p_data[1], length);
+	if (command == 0x30 && length == 2) {
+		command_0x30(p_rx_frameend->rx_data.p_data, tx_buffer);
+		nrfx_nfct_tx(&tx_buffer_param, NRF_NFCT_FRAME_DELAY_MODE_WINDOWGRID);
+	}
 }
 
 static void nrfx_nfct_evt_handler(nrfx_nfct_evt_t const * p_nfct_evt)
@@ -105,9 +119,12 @@ static int start_nfc(void)
 			.p_id = uid,
 		},
 	};
+
+	init_internal_buffer(uid, ARRAY_SIZE(uid));
+
 	nrfx_nfct_parameter_set(&uid_param);
-	NRF_NFCT->SELRES = 0x08;
-	NRF_NFCT->SENSRES = 0x0004;
+	//NRF_NFCT->SELRES = 0x00;
+	//NRF_NFCT->SENSRES = 0x0044;
 	nrfx_nfct_init(&config);
 	nrfx_nfct_enable();
 
