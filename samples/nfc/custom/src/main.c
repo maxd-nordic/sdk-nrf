@@ -51,12 +51,21 @@ static nrfx_nfct_data_desc_t tx_buffer_param =
 };
 
 static void handle_command(nrfx_nfct_evt_rx_frameend_t const * p_rx_frameend) {
+	int err;
 	const uint8_t command = p_rx_frameend->rx_data.p_data[0];
 	const uint32_t length = p_rx_frameend->rx_data.data_size;
 	printk("command: 0x%02X %02X, length: %d\n", command, p_rx_frameend->rx_data.p_data[1], length);
 	if (command == 0x30 && length == 2) {
 		command_0x30(p_rx_frameend->rx_data.p_data, tx_buffer);
-		nrfx_nfct_tx(&tx_buffer_param, NRF_NFCT_FRAME_DELAY_MODE_WINDOWGRID);
+		tx_buffer_param.data_size = 16;
+		err = nrfx_nfct_tx(&tx_buffer_param, NRF_NFCT_FRAME_DELAY_MODE_WINDOW);
+		if (err != NRFX_SUCCESS) {
+			printk("nrfx_nfct_tx: %08X\n", err);
+		}
+	} else if (command == 0x50) {
+		nrfx_nfct_init_substate_force(NRFX_NFCT_ACTIVE_STATE_SLEEP);
+	} else {
+		nrfx_nfct_init_substate_force(NRFX_NFCT_ACTIVE_STATE_DEFAULT);
 	}
 }
 
@@ -66,6 +75,7 @@ static void nrfx_nfct_evt_handler(nrfx_nfct_evt_t const * p_nfct_evt)
 	switch (p_nfct_evt->evt_id)
 	{
 		case NRFX_NFCT_EVT_FIELD_DETECTED:
+			nrfx_nfct_state_force(NRFX_NFCT_STATE_ACTIVATED);
 			break;
 		case NRFX_NFCT_EVT_FIELD_LOST:
 			break;
@@ -83,6 +93,7 @@ static void nrfx_nfct_evt_handler(nrfx_nfct_evt_t const * p_nfct_evt)
 			nrfx_nfct_rx(&rx_buffer_param);
 			break;
 		case NRFX_NFCT_EVT_ERROR:
+			printk("nfct_evt_error: %d\n", p_nfct_evt->params.error.reason);
 			break;
 		default:
 			break;
@@ -111,11 +122,11 @@ static int start_nfc(void)
 
 	nfc_platform_setup();
 
-	uint8_t uid[4] = {0xde, 0xad, 0xbe, 0xef};
+	uint8_t uid[4] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 	nrfx_nfct_param_t uid_param = {
 		.id = NRFX_NFCT_PARAM_ID_NFCID1,
 		.data.nfcid1 = {
-			.id_size = NRFX_NFCT_NFCID1_SINGLE_SIZE,
+			.id_size = NRFX_NFCT_NFCID1_DOUBLE_SIZE,
 			.p_id = uid,
 		},
 	};
@@ -219,7 +230,7 @@ void main(void)
 
 	/* Configure and start delayed work that enters system off */
 	k_work_init_delayable(&system_off_work, system_off);
-	k_work_reschedule(&system_off_work, K_SECONDS(SYSTEM_OFF_DELAY_S));
+	//k_work_reschedule(&system_off_work, K_SECONDS(SYSTEM_OFF_DELAY_S));
 
 	/* Show last reset reason */
 	print_reset_reason();
@@ -231,7 +242,12 @@ void main(void)
 	}
 
 	/* Prevent deep sleep (system off) from being entered */
-	pm_policy_state_lock_get(PM_STATE_SOFT_OFF, PM_ALL_SUBSTATES);
+	// pm_policy_state_lock_get(PM_STATE_SOFT_OFF, PM_ALL_SUBSTATES);
+
+	while (true)
+	{
+	}
+	
 
 	/* Exit main function - the rest will be done by the callbacks */
 }

@@ -34,9 +34,9 @@ void init_internal_buffer(uint8_t *uid, size_t uid_len)
 
 	/* CC bytes */
 	internal_buffer_cc[0] = 0xE1; /* magic number */
-	internal_buffer_cc[0] = 0x10; /* T2T version 1.0 */
-	internal_buffer_cc[0] = NUM_DATA_BYTES/8; /* #data bytes divided by 8 */
-	internal_buffer_cc[0] = 0x07; /* 0x0 unrestricted read access, 0x7 no write access */
+	internal_buffer_cc[1] = 0x10; /* T2T version 1.0 */
+	internal_buffer_cc[2] = NUM_DATA_BYTES/8; /* #data bytes divided by 8 */
+	internal_buffer_cc[3] = 0x07; /* 0x0 unrestricted read access, 0x7 no write access */
 
 }
 
@@ -45,12 +45,14 @@ void command_0x30(const uint8_t* in, uint8_t* out)
 {
 	const uint8_t page = in[1];
 
+	/*
 	if (page > LAST_PAGE) {
 		memset(out, 0, 16);
 	}
 
 	const size_t bytes_to_copy = MIN(NUM_PAGES-page, 4) * 4;
+	*/
 
-	memcpy(out, internal_buffer[4*in[1]], bytes_to_copy);
-	memset(out, 0, 16 - bytes_to_copy);
+	memcpy(out, internal_buffer[in[1]*4], 16);
+	//memset(out, 0, 16 - bytes_to_copy);
 }
