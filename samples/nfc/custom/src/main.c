@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
+#include <zephyr/sys/crc.h>
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -749,6 +752,48 @@ static void print_reset_reason(void)
 #endif
 }
 
+/*
+TODO:
+-software parity (odd, one bit after each byte, e.g. |00010000|0|)
+-software CRC, polynomial is 0x8408, initial value is 0x6363.
+*/
+
+static inline bool odd_parity8(uint8_t a) {
+	return (1 ^ (a << 0)^ (a << 1)^ (a << 2)^ (a << 3)^ (a << 4)^ (a << 5)^ (a << 6)^ (a << 7))&1;
+}
+
+size_t add_parity_and_crc(uint8_t *in, size_t in_len, uint8_t *out) {
+	uint16_t crc = crc16_ccitt(0x6363, in, in_len);
+	uint8_t crc_buf[2] = {crc & 0xFF, (crc >> 8) & 0xFF };
+
+	size_t offset_bits = 0;
+	size_t offset_bytes = 0;
+
+	size_t result_bitcount = (8 + 1) * (in_len + 2); // (byte + parity) * (data + crc)
+
+	for (size_t i = 0; i < in_len; ++i) {
+		out[offset_bytes]   |= (in[i] << offset_bits) & 0xFF;
+		out[offset_bytes+1] |= (in[i] >> (8-offset_bits)) & 0xFF;
+		out[offset_bytes+1] |= odd_parity8(in[i]) << offset_bits;
+
+		offset_bits += 9;
+		offset_bytes += offset_bits >> 3;
+		offset_bits = offset_bits & 0b111;
+	}
+	for (size_t i = 0; i < ARRAY_SIZE(crc_buf); ++i) {
+		out[offset_bytes]   |= (crc_buf[i] << offset_bits) & 0xFF;
+		out[offset_bytes+1] |= (crc_buf[i] >> (8-offset_bits)) & 0xFF;
+		out[offset_bytes+1] |= odd_parity8(crc_buf[i]) << offset_bits;
+
+		offset_bits += 9;
+		offset_bytes += offset_bits >> 3;
+		offset_bits = offset_bits & 0b111;
+	}
+
+	return result_bitcount;
+}
+
+
 
 void main(void)
 {
@@ -773,6 +818,17 @@ void main(void)
 		printk("ERROR: NFC configuration failed\n");
 		return;
 	}
+
+	uint8_t test_buf[] = {0, 0};
+	uint8_t test_out_buf[5] = {0};
+	add_parity_and_crc(test_buf, 2, test_out_buf);
+	printk("foo: %02X %02X %02X %02X %02X\n",
+		test_out_buf[0],
+		test_out_buf[1],
+		test_out_buf[2],
+		test_out_buf[3],
+		test_out_buf[4]);
+	//printk("crc: 0x%04X\n", crc16_ccitt(0x6363, test_buf, ARRAY_SIZE(test_buf)));
 
 	/* Prevent deep sleep (system off) from being entered */
 	pm_policy_state_lock_get(PM_STATE_SOFT_OFF, PM_ALL_SUBSTATES);	
