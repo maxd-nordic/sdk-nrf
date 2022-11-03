@@ -59,3 +59,14 @@ void mutual_1_reauth(uint64_t *lfsr, uint32_t uid, uint32_t nonce)
 		}
 	}
 }
+
+// reader sends [nonce, response] MSByte first, unencrypted
+void mutual_2_reader(uint64_t *lfsr, uint32_t nonce, uint8_t *response)
+{
+
+}
+
+void mutual_2_card(uint64_t *lfsr, uint32_t nonce, const uint8_t *response)
+{
+
+}
