@@ -58,3 +58,14 @@ config WIFI_CREDENTIALS_BACKEND_PSA_UID_OFFSET
 	  WIFI_CREDENTIALS_BACKEND_PSA_UID_OFFSET uid.
 
 endif # WIFI_CREDENTIALS_BACKEND_PSA
+
+config WIFI_CREDENTIALS_STATIC_SSID
+	string "SSID of statically configured WiFi network"
+
+config WIFI_CREDENTIALS_STATIC_PASSWORD
+	string "Password of statically configured WiFi network"
+	default ""
+
+config WIFI_CREDENTIALS_STATIC_TYPE
+	string "Type of statically configured WiFi network"
+	default "WPA2-PSK"

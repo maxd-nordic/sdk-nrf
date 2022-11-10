@@ -114,7 +114,10 @@ nRF IEEE 802.15.4 radio driver
 Wi-Fi
 -----
 
-|no_changes_yet_note|
+* Added:
+
+  * wifi_credentials library to store credentials
+  * wifi_mgmt_ext library to provide an autoconnect command based on wifi_credentials
 
 Applications
 ============
