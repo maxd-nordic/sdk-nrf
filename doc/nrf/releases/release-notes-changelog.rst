@@ -411,6 +411,10 @@ Wi-Fi samples
   * :ref:`wifi_station_sample` sample that demonstrates how to connect the Wi-Fi station to a specified access point.
   * :ref:`wifi_provisioning` sample that demonstrates how to provision a device with Nordic Semiconductor's Wi-Fi chipsets over Bluetooth® Low Energy.
 
+* Changed:
+
+  * :ref:`wifi_shell` sample now makes use of wifi_credentials and wifi_mgmt_ext.
+
 Other samples
 -------------
 
