@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 
 #define B(x,i) ((x>>i)&1)
 #define COMBINE4(a,b,c,d) ((a<<0)|(b<<1)|(c<<2)|(d<<3))
