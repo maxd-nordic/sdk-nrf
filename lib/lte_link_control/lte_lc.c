@@ -21,6 +21,7 @@
 #include <zephyr/logging/log.h>
 
 #include "lte_lc_helpers.h"
+#include "lte_lc_cnec_codes.h"
 
 LOG_MODULE_REGISTER(lte_lc, CONFIG_LTE_LINK_CONTROL_LOG_LEVEL);
 
@@ -134,6 +135,7 @@ static bool is_cellid_valid(uint32_t cellid)
 	return true;
 }
 
+AT_MONITOR(ltelc_atmon_cnec, "+CNEC", at_handler_cnec);
 AT_MONITOR(ltelc_atmon_cereg, "+CEREG", at_handler_cereg);
 AT_MONITOR(ltelc_atmon_cscon, "+CSCON", at_handler_cscon);
 AT_MONITOR(ltelc_atmon_cedrxp, "+CEDRXP", at_handler_cedrxp);
@@ -141,6 +143,54 @@ AT_MONITOR(ltelc_atmon_xt3412, "%XT3412", at_handler_xt3412);
 AT_MONITOR(ltelc_atmon_ncellmeas, "%NCELLMEAS", at_handler_ncellmeas);
 AT_MONITOR(ltelc_atmon_xmodemsleep, "%XMODEMSLEEP", at_handler_xmodemsleep);
 AT_MONITOR(ltelc_atmon_mdmev, "%MDMEV", at_handler_mdmev);
+
+static void at_handler_cnec(const char *response)
+{
+	int ret;
+	int code = 0;
+	int cid = -1;
+	char cid_str[sizeof(", CID: 10")] = "";
+
+	#define X(code, str) code,
+	static const int esm_codes[] = { CNEC_ESM_CODES };
+	static const int emm_codes[] = { CNEC_EMM_CODES };
+	#undef X
+
+	#define X(code, str) str,
+	static const char *esm_strings[] = { CNEC_ESM_CODES };
+	static const char *emm_strings[] = { CNEC_EMM_CODES };
+	#undef X
+
+	ret = sscanf(response, "+CNEC_ESM: %d,%d", &code, &cid);
+	if (ret > 0) {
+		if (cid != -1) {
+			sprintf(cid_str, ", CID: %d", cid);
+		}
+		for (size_t i = 0; i < ARRAY_SIZE(esm_codes); ++i) {
+			if (esm_codes[i] == code) {
+				LOG_ERR("ESM error: %s%s",
+					esm_strings[i], cid_str);
+				return;
+			}
+		}
+	}
+
+	ret = sscanf(response, "+CNEC_EMM: %d,%d", &code, &cid);
+	if (ret > 0) {
+		if (cid != -1) {
+			sprintf(cid_str, ", CID: %d", cid);
+		}
+		for (size_t i = 0; i < ARRAY_SIZE(emm_codes); ++i) {
+			if (emm_codes[i] == code) {
+				LOG_ERR("EMM error: %s%s",
+					emm_strings[i], cid_str);
+				return;
+			}
+		}
+	}
+
+	LOG_ERR("unknown +CNEC notification: %s", response);
+}
 
 static void at_handler_cereg(const char *response)
 {
@@ -517,6 +567,12 @@ static int enable_notifications(void)
 		return -EFAULT;
 	}
 
+	/* +CNEC notifications, both EMM and ESM */
+	err = nrf_modem_at_printf(AT_CNEC_24);
+	if (err) {
+		LOG_WRN("Failed to subscribe to CNEC notifications, error: %d", err);
+	}
+
 	if (IS_ENABLED(CONFIG_LTE_LC_TAU_PRE_WARNING_NOTIFICATIONS)) {
 		err = nrf_modem_at_printf(AT_XT3412_SUB,
 					  CONFIG_LTE_LC_TAU_PRE_WARNING_TIME_MS,
@@ -547,7 +603,7 @@ static int enable_notifications(void)
 		 * not work for older versions. If the command fails, RRC
 		 * mode change notifications will not be received. This is not
 		 * considered a critical error, and the error code is therefore
-		 * not returned, while informative log messageas are printed.
+		 * not returned, while informative log messages are printed.
 		 */
 		LOG_WRN("AT+CSCON failed (%d), RRC notifications are not enabled", err);
 		LOG_WRN("AT+CSCON is supported in nRF9160 modem >= v1.1.0");
@@ -1389,6 +1445,7 @@ int lte_lc_func_mode_set(enum lte_lc_func_mode mode)
 
 	err = nrf_modem_at_printf("AT+CFUN=%d", mode);
 	if (err) {
+		LOG_ERR("Failed to set functional mode. Please check if XSYSTEMMODE is correct.");
 		return -EFAULT;
 	}
 
