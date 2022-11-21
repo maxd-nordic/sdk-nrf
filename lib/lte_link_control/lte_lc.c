@@ -22,6 +22,7 @@
 
 #include "lte_lc_helpers.h"
 #include "lte_lc_cnec_codes.h"
+#include "lte_lc_cme_codes.h"
 
 LOG_MODULE_REGISTER(lte_lc, CONFIG_LTE_LINK_CONTROL_LOG_LEVEL);
 
@@ -190,6 +191,59 @@ static void at_handler_cnec(const char *response)
 	}
 
 	LOG_ERR("unknown +CNEC notification: %s", response);
+}
+
+static void parse_cme_code(const char *command, int err)
+{
+	int code = nrf_modem_at_err(err);
+	int err_type = nrf_modem_at_err_type(err);
+
+	#define X(code, str) code,
+	static const int cme_codes[] = { CME_CODES };
+	#undef X
+
+	#define X(code, str) str,
+	static const char *cme_strings[] = { CME_CODES };
+	#undef X
+
+	#define X(prefix, code, str) code,
+	static const int cme_codes_nordic[] = { CME_CODES_NORDIC };
+	#undef X
+
+	#define X(prefix, code, str) str,
+	static const char *cme_strings_nordic[] = { CME_CODES_NORDIC };
+	#undef X
+
+	#define X(prefix, code, str) prefix,
+	static const char *cme_prefixes_nordic[] = { CME_CODES_NORDIC };
+	#undef X
+
+	if (err_type == NRF_MODEM_AT_ERROR) {
+		return;
+	}
+	if (err_type == NRF_MODEM_AT_CME_ERROR) {
+		if (code < 512) {
+			for (size_t i = 0; i < ARRAY_SIZE(cme_codes); ++i) {
+				if (cme_codes[i] == code) {
+					LOG_ERR("CME Error: %s", cme_strings[i]);
+					return;
+				}
+			}
+		} else {
+			for (size_t i = 0; i < ARRAY_SIZE(cme_codes_nordic); ++i) {
+				if (cme_codes_nordic[i] == code &&
+				    strncmp(command,
+					    cme_prefixes_nordic[i],
+					    strlen(cme_prefixes_nordic[i])) == 0
+				) {
+					LOG_ERR("CME Error: %s", cme_strings_nordic[i]);
+					return;
+				}
+			}
+		}
+	}
+
+	LOG_ERR("unknown %s", response);
 }
 
 static void at_handler_cereg(const char *response)
@@ -566,11 +620,16 @@ static int enable_notifications(void)
 		LOG_ERR("Failed to subscribe to CEREG notifications, error: %d", err);
 		return -EFAULT;
 	}
-
 	/* +CNEC notifications, both EMM and ESM */
 	err = nrf_modem_at_printf(AT_CNEC_24);
 	if (err) {
 		LOG_WRN("Failed to subscribe to CNEC notifications, error: %d", err);
+	}
+
+	/* +CME result codes */
+	err = nrf_modem_at_printf(AT_CMEE_1);
+	if (err) {
+		LOG_WRN("Failed to enable mobile termination error notifications, error: %d", err);
 	}
 
 	if (IS_ENABLED(CONFIG_LTE_LC_TAU_PRE_WARNING_NOTIFICATIONS)) {
@@ -927,6 +986,7 @@ int lte_lc_psm_req(bool enable)
 	}
 
 	if (err) {
+		parse_cme_code("AT+CPSMS", err);
 		LOG_ERR("nrf_modem_at_printf failed, reported error: %d", err);
 		return -EFAULT;
 	}
@@ -1256,6 +1316,7 @@ int lte_lc_system_mode_set(enum lte_lc_system_mode mode,
 				  system_mode_params[mode],
 				  system_mode_preference[preference]);
 	if (err) {
+		parse_cme_code("AT%XSYSTEMMODE", err);
 		LOG_ERR("Could not send AT command, error: %d", err);
 		return -EFAULT;
 	}
@@ -1546,6 +1607,7 @@ int lte_lc_neighbor_cell_measurement(struct lte_lc_ncellmeas_params *params)
 	}
 
 	if (err) {
+		parse_cme_code("AT%NCELLMEAS", err);
 		err = -EFAULT;
 	} else {
 		ncellmeas_params = used_params;
@@ -1560,6 +1622,7 @@ int lte_lc_neighbor_cell_measurement_cancel(void)
 	int err = nrf_modem_at_printf(AT_NCELLMEAS_STOP);
 
 	if (err) {
+		parse_cme_code("AT%NCELLMEASSTOP", err);
 		err = -EFAULT;
 	}
 	ncellmeas_ongoing = false;
@@ -1868,7 +1931,14 @@ int lte_lc_reduced_mobility_set(enum lte_lc_reduced_mobility_mode mode)
 
 int lte_lc_factory_reset(enum lte_lc_factory_reset_type type)
 {
-	return nrf_modem_at_printf("AT%%XFACTORYRESET=%d", type) ? -EFAULT : 0;
+	int ret = nrf_modem_at_printf("AT%%XFACTORYRESET=%d", type);
+
+	if (ret) {
+		parse_cme_code("AT%XFACTORYRESET", ret);
+		return -EFAULT;
+	}
+
+	return 0;
 }
 
 #if defined(CONFIG_LTE_AUTO_INIT_AND_CONNECT)
