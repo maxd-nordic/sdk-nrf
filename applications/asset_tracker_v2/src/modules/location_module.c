@@ -243,6 +243,9 @@ static void search_start(void)
 	}
 
 	if (!copy_cfg.no_data.gnss) {
+		methods[methods_count] = LOCATION_METHOD_WIFI;
+		methods_count++;
+
 		methods[methods_count] = LOCATION_METHOD_GNSS;
 		methods_index_gnss = methods_count;
 		methods_count++;
