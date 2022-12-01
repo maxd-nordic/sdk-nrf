@@ -479,6 +479,51 @@ void location_core_cellular_ext_result_set(
 }
 #endif
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI_EXTERNAL)
+void location_core_event_cb_wifi_request(struct wifi_scan_info *request)
+{
+	struct location_event_data cell_request_event_data;
+
+	cell_request_event_data.id = LOCATION_EVT_WIFI_EXT_REQUEST;
+	cell_request_event_data.method = LOCATION_METHOD_WIFI;
+	cell_request_event_data.wifi_request = *request;
+	event_handler(&cell_request_event_data);
+}
+
+void location_core_wifi_ext_result_set(
+	enum location_wifi_ext_result result,
+	struct location_data *location)
+{
+	if (k_sem_count_get(&location_core_sem) > 0) {
+		LOG_WRN("Location Wi-Fi result set called but no location request pending");
+		return;
+	}
+
+	LOG_DBG("Location Wi-Fi result set with result=%s",
+		result == LOCATION_WIFI_EXT_RESULT_SUCCESS ? "success" :
+		result == LOCATION_WIFI_EXT_RESULT_UNKNOWN ? "unknown" : "error");
+
+	current_event_data.method = LOCATION_METHOD_WIFI;
+	switch (result) {
+	case LOCATION_WIFI_EXT_RESULT_SUCCESS:
+		current_event_data.id = LOCATION_EVT_LOCATION;
+		current_event_data.location = *location;
+		break;
+	case LOCATION_WIFI_EXT_RESULT_UNKNOWN:
+		current_event_data.id = LOCATION_EVT_RESULT_UNKNOWN;
+		break;
+	case LOCATION_WIFI_EXT_RESULT_ERROR:
+	default:
+		current_event_data.id = LOCATION_EVT_ERROR;
+		break;
+	}
+
+	k_work_submit_to_queue(
+		location_core_work_queue_get(),
+		&location_event_cb_work);
+}
+#endif
+
 static void location_core_event_details_get(struct location_event_data *event)
 {
 #if defined(CONFIG_LOCATION_DATA_DETAILS)

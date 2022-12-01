@@ -41,6 +41,13 @@ void location_core_cellular_ext_result_set(
 	struct location_data *location);
 #endif
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI_EXTERNAL)
+void location_core_event_cb_wifi_request(struct wifi_scan_info *request);
+void location_core_wifi_ext_result_set(
+	enum location_wifi_ext_result result,
+	struct location_data *location);
+#endif
+
 void location_core_config_log(const struct location_config *config);
 void location_core_timer_start(int32_t timeout);
 void location_core_timer_stop(void);

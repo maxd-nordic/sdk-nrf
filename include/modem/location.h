@@ -18,6 +18,9 @@
 #if defined(CONFIG_LOCATION_METHOD_CELLULAR_EXTERNAL)
 #include <modem/lte_lc.h>
 #endif
+#if defined(CONFIG_LOCATION_METHOD_WIFI_EXTERNAL)
+#include <net/wifi_location_common.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,7 +80,13 @@ enum location_event_id {
 	 * Application should send the cell information to cloud services and
 	 * then call location_cellular_ext_result_set().
 	 */
-	LOCATION_EVT_CELLULAR_EXT_REQUEST
+	LOCATION_EVT_CELLULAR_EXT_REQUEST,
+	/**
+	 * Wi-Fi location request with Wi-Fi access point information is available.
+	 * Application should send the access point information to cloud services and
+	 * then call location_wifi_ext_result_set().
+	 */
+	LOCATION_EVT_WIFI_EXT_REQUEST
 };
 
 /** Result of the external cellular request. */
@@ -88,6 +97,16 @@ enum location_cellular_ext_result {
 	LOCATION_CELLULAR_EXT_RESULT_UNKNOWN,
 	/* Cellular location result is error. */
 	LOCATION_CELLULAR_EXT_RESULT_ERROR
+};
+
+/** Result of the external Wi-Fi request. */
+enum location_wifi_ext_result {
+	/* Cellular location result is successful. */
+	LOCATION_WIFI_EXT_RESULT_SUCCESS,
+	/* Cellular location result is unknown. */
+	LOCATION_WIFI_EXT_RESULT_UNKNOWN,
+	/* Cellular location result is error. */
+	LOCATION_WIFI_EXT_RESULT_ERROR
 };
 
 /** Location accuracy. */
@@ -215,6 +234,14 @@ struct location_event_data {
 		 * Used with event LOCATION_EVT_CELLULAR_EXT_REQUEST.
 		 */
 		struct lte_lc_cells_info cellular_request;
+#endif
+#if  defined(CONFIG_LOCATION_METHOD_WIFI_EXTERNAL)
+		/**
+		 * Wi-Fi access point information to let the application know it should send these
+		 * to a cloud service to resolve the location.
+		 * Used with event LOCATION_EVT_WIFI_EXT_REQUEST.
+		 */
+		struct wifi_scan_info wifi_request;
 #endif
 	};
 };
@@ -492,6 +519,28 @@ int location_pgps_data_process(const char *buf, size_t buf_len);
  */
 void location_cellular_ext_result_set(
 	enum location_cellular_ext_result result,
+	struct location_data *location);
+
+/**
+ * @brief Pass Wi-Fi location result to the library.
+ *
+ * @details If the Location library is not receiving Wi-Fi position directly from services,
+ * it triggers the @ref LOCATION_EVT_WIFI_EXT_REQUEST event when access point information
+ * should be sent to cloud services for location resolution. Then, the application responds
+ * with the result of the location result.
+ *
+ * In addition to successful and error results, the application can indicate an unknown result with
+ * @ref LOCATION_WIFI_EXT_RESULT_UNKNOWN. This is useful when the application wants
+ * the Location library to proceed irrespective of the outcome. The Location library will try to
+ * perform a fallback to the next method, if available, just like in a failure case.
+ * If there are no more methods, LOCATION_EVT_RESULT_UNKNOWN event will be sent to the application.
+ *
+ * @param[in] result Result of the external Wi-Fi request.
+ * @param[in] location Wi-Fi location data. Will be used only if @p result is
+ *                     LOCATION_WIFI_EXT_RESULT_SUCCESS.
+ */
+void location_wifi_ext_result_set(
+	enum location_wifi_ext_result result,
 	struct location_data *location);
 
 /** @} */
