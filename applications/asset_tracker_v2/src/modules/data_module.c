@@ -71,6 +71,7 @@ static struct cloud_data_impact impact_buf[CONFIG_DATA_IMPACT_BUFFER_COUNT];
 static struct cloud_data_battery bat_buf[CONFIG_DATA_BATTERY_BUFFER_COUNT];
 static struct cloud_data_modem_dynamic modem_dyn_buf[CONFIG_DATA_MODEM_DYNAMIC_BUFFER_COUNT];
 static struct cloud_data_neighbor_cells neighbor_cells;
+static struct cloud_data_wifi_access_points wifi_access_points;
 
 /* Static modem data does not change between firmware versions and does not
  * have to be buffered.
@@ -129,6 +130,7 @@ enum coneval_supported_data_type {
 	GENERIC,
 	BATCH,
 	NEIGHBOR_CELLS,
+	WIFI_ACCESS_POINTS,
 	COUNT,
 };
 
@@ -326,6 +328,9 @@ static bool grant_send(enum coneval_supported_data_type type,
 			   && coneval->energy_estimate >= LTE_LC_ENERGY_CONSUMPTION_EFFICIENT) {
 			goto grant;
 		}
+		break;
+	case WIFI_ACCESS_POINTS:
+		/* TODO: Do we need something here */
 		break;
 	case BATCH:
 		if (IS_ENABLED(CONFIG_DATA_BATCH_UPDATES_ENERGY_THRESHOLD_EXCESSIVE) &&
@@ -591,6 +596,26 @@ static void data_encode(void)
 			break;
 		default:
 			LOG_ERR("Error encoding neighbor cells data: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
+	}
+
+	if (grant_send(WIFI_ACCESS_POINTS, &coneval, override)) {
+		err = cloud_codec_encode_wifi_access_points(&codec, &wifi_access_points);
+		switch (err) {
+		case 0:
+			LOG_DBG("Wi-Fi access point data encoded successfully");
+			data_send(DATA_EVT_WIFI_ACCESS_POINTS_DATA_SEND, &codec);
+			break;
+		case -ENOTSUP:
+			/* Wi-Fi access point data encoding not supported */
+			break;
+		case -ENODATA:
+			LOG_DBG("No Wi-Fi access point data to encode, error: %d", err);
+			break;
+		default:
+			LOG_ERR("Error encoding Wi-Fi access point data: %d", err);
 			SEND_ERROR(data, DATA_EVT_ERROR, err);
 			return;
 		}
@@ -1418,6 +1443,21 @@ static void on_all_states(struct data_msg_data *msg)
 
 		neighbor_cells.ts = msg->module.location.data.neighbor_cells.timestamp;
 		neighbor_cells.queued = true;
+
+		requested_data_status_set(APP_DATA_LOCATION);
+	}
+
+	if (IS_EVENT(msg, location, LOCATION_MODULE_EVT_WIFI_ACCESS_POINTS_DATA_READY)) {
+		BUILD_ASSERT(sizeof(wifi_access_points.ap_info) ==
+			     sizeof(msg->module.location.data.wifi_access_points.ap_info));
+
+		memcpy(&wifi_access_points.ap_info,
+		       &msg->module.location.data.wifi_access_points.ap_info,
+		       sizeof(wifi_access_points.ap_info));
+
+		wifi_access_points.cnt = msg->module.location.data.wifi_access_points.cnt;
+		wifi_access_points.ts = msg->module.location.data.wifi_access_points.timestamp;
+		wifi_access_points.queued = true;
 
 		requested_data_status_set(APP_DATA_LOCATION);
 	}

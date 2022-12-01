@@ -15,6 +15,7 @@
 #include <cJSON_os.h>
 #include <zephyr/net/net_ip.h>
 #include <modem/lte_lc.h>
+#include <net/wifi_location_common.h>
 #include <nrf_modem_gnss.h>
 
 /**@file
@@ -211,6 +212,17 @@ struct cloud_data_neighbor_cells {
 	bool queued : 1;
 };
 
+struct cloud_data_wifi_access_points {
+	/** Access points found during scan. */
+	struct wifi_scan_result ap_info[CONFIG_LOCATION_METHOD_WIFI_SCANNING_RESULTS_MAX_CNT];
+	/** The number of access points found during scan. */
+	uint16_t cnt;
+	/** Wi-Fi scaninfo timestamp. UNIX milliseconds. */
+	int64_t ts;
+	/** Flag signifying that the data entry is to be encoded. */
+	bool queued : 1;
+};
+
 struct cloud_data_agps_request {
 	/** Mobile Country Code */
 	int mcc;
@@ -292,6 +304,25 @@ int cloud_codec_init(struct cloud_data_cfg *cfg, cloud_codec_evt_handler_t event
  */
 int cloud_codec_encode_neighbor_cells(struct cloud_codec_data *output,
 				      struct cloud_data_neighbor_cells *neighbor_cells);
+
+/**
+ * @brief Encode cloud codec Wi-Fi access points data.
+ *
+ * @note LwM2M builds: This function does not output a list of objects, unlike other
+ *		       functions in this API. The object references that are required to update
+ *		       Wi-Fi access points are kept internal in the LwM2M utils library.
+ *
+ * @param[out] output string buffer for encoding result
+ * @param[in] wifi_access_points Wi-Fi access points
+ *
+ * @retval 0 on success
+ * @retval -ENODATA if data object is not marked valid
+ * @retval -ENOMEM if codec couldn't allocate memory
+ * @retval -EINVAL if the data is invalid
+ * @retval -ENOTSUP if the function is not supported by the encoding backend
+ */
+int cloud_codec_encode_wifi_access_points(struct cloud_codec_data *output,
+					  struct cloud_data_wifi_access_points *wifi_access_points);
 
 /**
  * @brief Encode cloud codec A-GPS request.

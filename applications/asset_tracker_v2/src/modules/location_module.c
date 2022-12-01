@@ -353,6 +353,28 @@ static void send_neighbor_cell_update(struct lte_lc_cells_info *cell_info)
 	APP_EVENT_SUBMIT(evt);
 }
 
+static void send_wifi_ap_update(struct wifi_scan_info *wifi_ap_info)
+{
+	struct location_module_event *evt = new_location_module_event();
+
+	BUILD_ASSERT(sizeof(evt->data.wifi_access_points.ap_info) >=
+		     sizeof(struct wifi_scan_result) *
+		     CONFIG_LOCATION_METHOD_WIFI_SCANNING_RESULTS_MAX_CNT);
+
+	evt->data.wifi_access_points.cnt = wifi_ap_info->cnt;
+	memcpy(&evt->data.wifi_access_points.ap_info, wifi_ap_info->ap_info,
+	       sizeof(struct wifi_scan_result) * evt->data.wifi_access_points.cnt);
+
+	/* TODO: Do we need to convert RSRP */
+
+	/* Convert RSRP to dBm and RSRQ to dB per "nRF91 AT Commands" v1.7. */
+
+	evt->type = LOCATION_MODULE_EVT_WIFI_ACCESS_POINTS_DATA_READY;
+	evt->data.wifi_access_points.timestamp = k_uptime_get();
+
+	APP_EVENT_SUBMIT(evt);
+}
+
 /* Non-static so that this can be used in tests to mock location library API. */
 void location_event_handler(const struct location_event_data *event_data)
 {
@@ -409,8 +431,9 @@ void location_event_handler(const struct location_event_data *event_data)
 		stats.search_time = (uint32_t)(k_uptime_get() - stats.start_uptime);
 		LOG_DBG("  search time: %d", stats.search_time);
 		inactive_send();
-		/* No events are sent because LOCATION_MODULE_EVT_NEIGHBOR_CELLS_DATA_READY
-		 * has already been sent earlier and hence APP_LOCATION has been set already.
+		/* No events are sent because LOCATION_MODULE_EVT_NEIGHBOR_CELLS_DATA_READY and
+		 * LOCATION_MODULE_EVT_WIFI_ACCESS_POINTS_DATA_READY
+		 * have already been sent earlier and hence APP_LOCATION has been set already.
 		 */
 		break;
 
@@ -465,6 +488,12 @@ void location_event_handler(const struct location_event_data *event_data)
 		send_neighbor_cell_update(
 			(struct lte_lc_cells_info *)&event_data->cellular_request);
 		location_cellular_ext_result_set(LOCATION_CELLULAR_EXT_RESULT_UNKNOWN, NULL);
+		break;
+
+	case LOCATION_EVT_WIFI_EXT_REQUEST:
+		LOG_DBG("Getting Wi-Fi request");
+		send_wifi_ap_update((struct wifi_scan_info *)&event_data->wifi_request);
+		location_wifi_ext_result_set(LOCATION_WIFI_EXT_RESULT_UNKNOWN, NULL);
 		break;
 
 	default:

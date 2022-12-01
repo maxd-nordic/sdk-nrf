@@ -838,6 +838,56 @@ exit:
 	return -ENOTSUP;
 }
 
+int cloud_codec_encode_wifi_access_points(struct cloud_codec_data *output,
+					  struct cloud_data_wifi_access_points *wifi_access_points)
+{
+#if defined(CONFIG_NRF_CLOUD_LOCATION)
+	int err;
+	char *buffer;
+	cJSON *root_obj = NULL;
+
+	__ASSERT_NO_MSG(output != NULL);
+	__ASSERT_NO_MSG(wifi_access_points != NULL);
+
+	struct wifi_scan_info info = {
+		.ap_info = wifi_access_points->ap_info,
+		.cnt = wifi_access_points->cnt
+	};
+
+	if (!wifi_access_points->queued) {
+		return -ENODATA;
+	}
+
+	err = nrf_cloud_location_request_json_get(NULL, &info, true, &root_obj);
+	if (err) {
+		LOG_ERR("nrf_cloud_location_request_json_get, error: %d", err);
+		return -ENOMEM;
+	}
+
+	buffer = cJSON_PrintUnformatted(root_obj);
+	if (buffer == NULL) {
+		LOG_ERR("Failed to allocate memory for JSON string");
+
+		err = -ENOMEM;
+		goto exit;
+	}
+
+	if (IS_ENABLED(CONFIG_CLOUD_CODEC_LOG_LEVEL_DBG)) {
+		json_print_obj("Encoded message:\n", root_obj);
+	}
+
+	output->buf = buffer;
+	output->len = strlen(buffer);
+
+exit:
+	wifi_access_points->queued = false;
+	cJSON_Delete(root_obj);
+	return err;
+#endif /* CONFIG_NRF_CLOUD_LOCATION */
+
+	return -ENOTSUP;
+}
+
 int cloud_codec_encode_agps_request(struct cloud_codec_data *output,
 				    struct cloud_data_agps_request *agps_request)
 {
