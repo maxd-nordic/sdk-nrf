@@ -33,6 +33,8 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
 
+#include "ina3221.h"
+
 LOG_MODULE_REGISTER(MODULE, CONFIG_APPLICATION_MODULE_LOG_LEVEL);
 
 /* Message structure. Events from other modules are converted to messages
@@ -543,6 +545,14 @@ void main(void)
 		LOG_ERR("Failed starting module, error: %d", err);
 		SEND_ERROR(app, APP_EVT_ERROR, err);
 	}
+
+	err = ina3221_init();
+	if (!err) {
+		LOG_WRN("INA3221 successfully initialized");
+	}
+	k_sleep(K_SECONDS(1));
+
+	
 
 	while (true) {
 		module_get_next_msg(&self, &msg);
