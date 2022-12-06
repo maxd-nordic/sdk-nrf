@@ -439,6 +439,7 @@ int cloud_wrap_neighbor_cells_send(char *buf, size_t len, bool ack, uint32_t id)
 	return 0;
 }
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 int cloud_wrap_wifi_access_points_send(char *buf, size_t len, bool ack, uint32_t id)
 {
 	int err;
@@ -458,6 +459,7 @@ int cloud_wrap_wifi_access_points_send(char *buf, size_t len, bool ack, uint32_t
 
 	return 0;
 }
+#endif
 
 int cloud_wrap_state_get(bool ack, uint32_t id)
 {

@@ -243,9 +243,10 @@ static void search_start(void)
 	}
 
 	if (!copy_cfg.no_data.gnss) {
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 		methods[methods_count] = LOCATION_METHOD_WIFI;
 		methods_count++;
-
+#endif
 		methods[methods_count] = LOCATION_METHOD_GNSS;
 		methods_index_gnss = methods_count;
 		methods_count++;
@@ -356,6 +357,7 @@ static void send_neighbor_cell_update(struct lte_lc_cells_info *cell_info)
 	APP_EVENT_SUBMIT(evt);
 }
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 static void send_wifi_ap_update(struct wifi_scan_info *wifi_ap_info)
 {
 	struct location_module_event *evt = new_location_module_event();
@@ -377,6 +379,7 @@ static void send_wifi_ap_update(struct wifi_scan_info *wifi_ap_info)
 
 	APP_EVENT_SUBMIT(evt);
 }
+#endif
 
 /* Non-static so that this can be used in tests to mock location library API. */
 void location_event_handler(const struct location_event_data *event_data)
@@ -493,11 +496,13 @@ void location_event_handler(const struct location_event_data *event_data)
 		location_cellular_ext_result_set(LOCATION_CELLULAR_EXT_RESULT_UNKNOWN, NULL);
 		break;
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 	case LOCATION_EVT_WIFI_EXT_REQUEST:
 		LOG_DBG("Getting Wi-Fi request");
 		send_wifi_ap_update((struct wifi_scan_info *)&event_data->wifi_request);
 		location_wifi_ext_result_set(LOCATION_WIFI_EXT_RESULT_UNKNOWN, NULL);
 		break;
+#endif
 
 	default:
 		LOG_DBG("Getting location: Unknown event %d", event_data->id);

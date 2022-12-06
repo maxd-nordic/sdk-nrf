@@ -226,6 +226,7 @@ struct cloud_data_neighbor_cells {
 	bool queued : 1;
 };
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 struct cloud_data_wifi_access_points {
 	/** Access points found during scan. */
 	struct wifi_scan_result ap_info[CONFIG_LOCATION_METHOD_WIFI_SCANNING_RESULTS_MAX_CNT];
@@ -236,6 +237,7 @@ struct cloud_data_wifi_access_points {
 	/** Flag signifying that the data entry is to be encoded. */
 	bool queued : 1;
 };
+#endif
 
 struct cloud_data_agps_request {
 	/** Mobile Country Code */
@@ -319,6 +321,7 @@ int cloud_codec_init(struct cloud_data_cfg *cfg, cloud_codec_evt_handler_t event
 int cloud_codec_encode_neighbor_cells(struct cloud_codec_data *output,
 				      struct cloud_data_neighbor_cells *neighbor_cells);
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 /**
  * @brief Encode cloud codec Wi-Fi access points data.
  *
@@ -337,6 +340,7 @@ int cloud_codec_encode_neighbor_cells(struct cloud_codec_data *output,
  */
 int cloud_codec_encode_wifi_access_points(struct cloud_codec_data *output,
 					  struct cloud_data_wifi_access_points *wifi_access_points);
+#endif
 
 /**
  * @brief Encode cloud codec A-GPS request.

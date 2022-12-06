@@ -203,6 +203,7 @@ int cloud_wrap_ui_send(char *buf, size_t len, bool ack, uint32_t id, char *path_
  */
 int cloud_wrap_neighbor_cells_send(char *buf, size_t len, bool ack, uint32_t id);
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 /**
  * @brief Send Wi-Fi access point data to cloud.
  *
@@ -218,6 +219,7 @@ int cloud_wrap_neighbor_cells_send(char *buf, size_t len, bool ack, uint32_t id)
  * @return 0 on success, or a negative error code on failure.
  */
 int cloud_wrap_wifi_access_points_send(char *buf, size_t len, bool ack, uint32_t id);
+#endif
 
 /**
  * @brief Send A-GPS request to cloud.

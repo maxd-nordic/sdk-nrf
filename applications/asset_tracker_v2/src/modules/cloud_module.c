@@ -813,7 +813,7 @@ static void on_sub_state_cloud_connected(struct cloud_msg_data *msg)
 	}
 
 	if (IS_EVENT(msg, data, DATA_EVT_WIFI_ACCESS_POINTS_DATA_SEND)) {
-
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 		if (IS_ENABLED(CONFIG_LWM2M_INTEGRATION)) {
 			err = cloud_wrap_wifi_access_points_send(NULL, 0, true, 0);
 			if (err) {
@@ -822,6 +822,7 @@ static void on_sub_state_cloud_connected(struct cloud_msg_data *msg)
 
 			return;
 		}
+#endif
 
 		add_qos_message(msg->module.data.data.buffer.buf,
 				msg->module.data.data.buffer.len,
@@ -882,6 +883,7 @@ static void on_sub_state_cloud_connected(struct cloud_msg_data *msg)
 				LOG_WRN("cloud_wrap_neighbor_cells_send, err: %d", err);
 			}
 			break;
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 		case WIFI_ACCESS_POINTS:
 			err = cloud_wrap_wifi_access_points_send(message->buf,
 								 message->len,
@@ -891,6 +893,7 @@ static void on_sub_state_cloud_connected(struct cloud_msg_data *msg)
 				LOG_WRN("cloud_wrap_wifi_access_points_send, err: %d", err);
 			}
 			break;
+#endif
 		case AGPS_REQUEST:
 			err = cloud_wrap_agps_request_send(message->buf,
 							   message->len,

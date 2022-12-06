@@ -72,8 +72,9 @@ static struct cloud_data_impact impact_buf[CONFIG_DATA_IMPACT_BUFFER_COUNT];
 static struct cloud_data_battery bat_buf[CONFIG_DATA_BATTERY_BUFFER_COUNT];
 static struct cloud_data_modem_dynamic modem_dyn_buf[CONFIG_DATA_MODEM_DYNAMIC_BUFFER_COUNT];
 static struct cloud_data_neighbor_cells neighbor_cells;
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 static struct cloud_data_wifi_access_points wifi_access_points;
-
+#endif
 /* Static modem data does not change between firmware versions and does not
  * have to be buffered.
  */
@@ -603,6 +604,7 @@ static void data_encode(void)
 		}
 	}
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 	if (grant_send(WIFI_ACCESS_POINTS, &coneval, override)) {
 		err = cloud_codec_encode_wifi_access_points(&codec, &wifi_access_points);
 		switch (err) {
@@ -622,6 +624,7 @@ static void data_encode(void)
 			return;
 		}
 	}
+#endif
 
 	if (grant_send(GENERIC, &coneval, override)) {
 		err = cloud_codec_encode_data(&codec,
@@ -1470,6 +1473,7 @@ static void on_all_states(struct data_msg_data *msg)
 		requested_data_status_set(APP_DATA_LOCATION);
 	}
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 	if (IS_EVENT(msg, location, LOCATION_MODULE_EVT_WIFI_ACCESS_POINTS_DATA_READY)) {
 		BUILD_ASSERT(sizeof(wifi_access_points.ap_info) ==
 			     sizeof(msg->module.location.data.wifi_access_points.ap_info));
@@ -1484,6 +1488,7 @@ static void on_all_states(struct data_msg_data *msg)
 
 		requested_data_status_set(APP_DATA_LOCATION);
 	}
+#endif
 
 	if (IS_EVENT(msg, location, LOCATION_MODULE_EVT_TIMEOUT)) {
 		requested_data_status_set(APP_DATA_LOCATION);

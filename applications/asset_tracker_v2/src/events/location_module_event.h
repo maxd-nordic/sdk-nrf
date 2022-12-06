@@ -130,6 +130,7 @@ struct location_module_neighbor_cells {
 	int64_t timestamp;
 };
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 /** @brief Location module data for associated payload for event of
  *         LOCATION_MODULE_EVT_WIFI_ACCESS_POINTS_DATA_READY types.
  */
@@ -141,6 +142,7 @@ struct location_module_wifi_access_points {
 	/** Uptime when the event was sent. */
 	int64_t timestamp;
 };
+#endif
 
 /** @brief Location module data for associated payload for events of LOCATION_MODULE_EVT_TIMEOUT and
  *	   LOCATION_MODULE_EVT_GNSS_DATA_READY types.
@@ -171,8 +173,10 @@ struct location_module_event {
 		struct location_module_data location;
 		/** Data for event LOCATION_MODULE_EVT_NEIGHBOR_CELLS_DATA_READY. */
 		struct location_module_neighbor_cells neighbor_cells;
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
 		/** Data for event LOCATION_MODULE_EVT_WIFI_ACCESS_POINTS_DATA_READY. */
 		struct location_module_wifi_access_points wifi_access_points;
+#endif
 		/** Data for event LOCATION_MODULE_EVT_AGPS_NEEDED. */
 		struct nrf_modem_gnss_agps_data_frame agps_request;
 #if defined(CONFIG_NRF_CLOUD_PGPS)
