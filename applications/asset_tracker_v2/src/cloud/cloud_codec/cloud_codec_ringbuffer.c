@@ -110,6 +110,27 @@ void cloud_codec_populate_bat_buffer(struct cloud_data_battery *bat_buffer,
 		buffer_count - 1);
 }
 
+void cloud_codec_populate_pwr_buffer(struct cloud_data_power *pwr_buffer,
+				     struct cloud_data_power *new_pwr_data,
+				     int *head_pwr_buf,
+				     size_t buffer_count)
+{
+	if (!new_pwr_data->queued) {
+		return;
+	}
+
+	/* Go to start of buffer if end is reached. */
+	*head_pwr_buf += 1;
+	if (*head_pwr_buf == buffer_count) {
+		*head_pwr_buf = 0;
+	}
+
+	pwr_buffer[*head_pwr_buf] = *new_pwr_data;
+
+	LOG_DBG("Entry: %d of %d in power buffer filled", *head_pwr_buf,
+		buffer_count - 1);
+}
+
 void cloud_codec_populate_gnss_buffer(struct cloud_data_gnss *gnss_buffer,
 				    struct cloud_data_gnss *new_gnss_data,
 				    int *head_gnss_buf,

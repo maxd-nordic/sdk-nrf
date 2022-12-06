@@ -907,6 +907,66 @@ exit:
 	return err;
 }
 
+int json_common_power_data_add(cJSON *parent,
+				 struct cloud_data_power *data,
+				 enum json_common_op_code op,
+				 const char *object_label,
+				 cJSON **parent_ref)
+{
+	int err;
+
+	if (!data->queued) {
+		return -ENODATA;
+	}
+
+	err = date_time_uptime_to_unix_time_ms(&data->ts);
+	if (err) {
+		LOG_ERR("date_time_uptime_to_unix_time_ms, error: %d", err);
+		return err;
+	}
+
+	cJSON *power_obj = cJSON_CreateObject();
+	cJSON *power_val_obj = cJSON_CreateObject();
+
+	if (power_obj == NULL || power_val_obj == NULL) {
+		err = -ENOMEM;
+		goto exit;
+	}
+
+	err = json_add_number(power_val_obj, DATA_SOLAR_GAIN, data->current * 1000);
+	if (err) {
+		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+		goto exit;
+	}
+
+	err = json_add_number(power_val_obj, DATA_BATTERY, data->voltage);
+	if (err) {
+		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+		goto exit;
+	}
+
+	json_add_obj(power_obj, DATA_VALUE, power_val_obj);
+
+	err = json_add_number(power_obj, DATA_TIMESTAMP, data->ts);
+	if (err) {
+		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+		goto exit;
+	}
+
+	err = op_code_handle(parent, op, object_label, power_obj, parent_ref);
+	if (err) {
+		goto exit;
+	}
+
+	data->queued = false;
+
+	return 0;
+
+exit:
+	cJSON_Delete(power_obj);
+	return err;
+}
+
 int json_common_config_add(cJSON *parent, struct cloud_data_cfg *data, const char *object_label)
 {
 	int err;
@@ -1171,6 +1231,16 @@ int json_common_batch_data_add(cJSON *parent, enum json_common_buffer_type type,
 			struct cloud_data_battery *data =
 					(struct cloud_data_battery *)buf;
 			err = json_common_battery_data_add(array_obj,
+							   &data[i],
+							   JSON_COMMON_ADD_DATA_TO_ARRAY,
+							   NULL,
+							   NULL);
+		}
+			break;
+		case JSON_COMMON_POWER: {
+			struct cloud_data_power *data =
+					(struct cloud_data_power *)buf;
+			err = json_common_power_data_add(array_obj,
 							   &data[i],
 							   JSON_COMMON_ADD_DATA_TO_ARRAY,
 							   NULL,

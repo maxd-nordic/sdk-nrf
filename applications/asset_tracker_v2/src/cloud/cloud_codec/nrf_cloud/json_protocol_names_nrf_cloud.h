@@ -35,6 +35,8 @@
 #define APP_ID_RSRP	   "RSRP"
 #define APP_ID_CELL_POS    "CELL_POS"
 #define APP_ID_IMPACT      "IMPACT"
+#define APP_ID_SHIELD_VOLTAGE       "SHIELD_VOLTAGE"
+#define APP_ID_SHIELD_CURRENT       "SHIELD_CURRENT"
 
 #define MODEM_CURRENT_BAND     "currentBand"
 #define MODEM_NETWORK_MODE     "networkMode"
