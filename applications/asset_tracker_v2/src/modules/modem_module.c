@@ -71,6 +71,8 @@ static int16_t rsrp_value_latest;
 /* Value that holds the latest LTE network mode. */
 static enum lte_lc_lte_mode nw_mode_latest;
 
+enum lte_lc_energy_estimate energy_estimate_prev;
+
 const k_tid_t module_thread;
 
 /* Modem module message queue. */
@@ -580,6 +582,19 @@ static void populate_event_with_dynamic_modem_data(struct modem_module_event *ev
 		.rsrp = UINT8_MAX,
 		.nw_mode = LTE_LC_LTE_MODE_NONE,
 	};
+
+	int err;
+	struct lte_lc_conn_eval_params coneval = { 0 };
+	err = lte_lc_conn_eval_params_get(&coneval);
+	if (err) {
+		LOG_ERR("Couldn't get CONEVAL data, err: %d", err);
+	} else if ((coneval.energy_estimate != energy_estimate_prev) || include) {
+		event->data.modem_dynamic.energy_estimate = coneval.energy_estimate;
+		energy_estimate_prev = coneval.energy_estimate;
+
+		event->data.modem_dynamic.energy_estimate_fresh = true;
+		params_added = true;
+	}
 
 	/* Compare the latest sampled parameters with the previous. If there has been a change we
 	 * want to include the parameters in the event.

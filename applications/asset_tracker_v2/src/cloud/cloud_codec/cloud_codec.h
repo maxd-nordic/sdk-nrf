@@ -178,17 +178,20 @@ struct cloud_data_modem_dynamic {
 	char apn[CONFIG_CLOUD_CODEC_APN_LEN_MAX];
 	/* Mobile Country Code*/
 	char mccmnc[7];
+	/* Energy estimate */
+	uint16_t energy_estimate;
 	/** Flag signifying that the data entry is to be encoded. */
 	bool queued : 1;
 
 	/** Flags to signify if the corresponding data value is fresh and can be used. */
-	bool area_code_fresh	: 1;
-	bool cell_id_fresh	: 1;
-	bool rsrp_fresh		: 1;
-	bool ip_address_fresh	: 1;
-	bool mccmnc_fresh	: 1;
-	bool band_fresh		: 1;
-	bool nw_mode_fresh	: 1;
+	bool area_code_fresh		: 1;
+	bool cell_id_fresh		: 1;
+	bool rsrp_fresh			: 1;
+	bool ip_address_fresh		: 1;
+	bool mccmnc_fresh		: 1;
+	bool band_fresh			: 1;
+	bool nw_mode_fresh		: 1;
+	bool energy_estimate_fresh	: 1;
 };
 
 struct cloud_data_ui {

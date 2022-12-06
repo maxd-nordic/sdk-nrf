@@ -239,6 +239,15 @@ int json_common_modem_dynamic_data_add(cJSON *parent,
 		values_added = true;
 	}
 
+	if (data->energy_estimate_fresh) {
+		err = json_add_number(modem_val_obj, MODEM_ENERGY_ESTIMATE, data->energy_estimate);
+		if (err) {
+			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+			goto exit;
+		}
+		values_added = true;
+	}
+
 	if (!values_added) {
 		err = -ENODATA;
 		data->queued = false;

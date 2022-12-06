@@ -1319,6 +1319,7 @@ static void on_all_states(struct data_msg_data *msg)
 			.rsrp = msg->module.modem.data.modem_dynamic.rsrp,
 			.mcc = msg->module.modem.data.modem_dynamic.mcc,
 			.mnc = msg->module.modem.data.modem_dynamic.mnc,
+			.energy_estimate = msg->module.modem.data.modem_dynamic.energy_estimate,
 			.ts = msg->module.modem.data.modem_dynamic.timestamp,
 
 			.area_code_fresh = msg->module.modem.data.modem_dynamic.area_code_fresh,
@@ -1328,6 +1329,8 @@ static void on_all_states(struct data_msg_data *msg)
 			.rsrp_fresh = msg->module.modem.data.modem_dynamic.rsrp_fresh,
 			.ip_address_fresh = msg->module.modem.data.modem_dynamic.ip_address_fresh,
 			.mccmnc_fresh = msg->module.modem.data.modem_dynamic.mccmnc_fresh,
+			.energy_estimate_fresh =
+				msg->module.modem.data.modem_dynamic.energy_estimate_fresh,
 			.queued = true
 		};
 
