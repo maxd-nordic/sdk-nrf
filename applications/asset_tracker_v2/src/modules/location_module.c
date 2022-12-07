@@ -236,17 +236,13 @@ static void search_start(void)
 	int methods_index_gnss = -1;
 	int methods_index_cellular = -1;
 
-	if (copy_cfg.no_data.neighbor_cell && copy_cfg.no_data.gnss) {
+	if (copy_cfg.no_data.neighbor_cell && copy_cfg.no_data.gnss && copy_cfg.no_data.wifi) {
 		SEND_EVENT(location, LOCATION_MODULE_EVT_DATA_NOT_READY);
 		LOG_ERR("Both GNSS and cellular are configured off");
 		return;
 	}
 
 	if (!copy_cfg.no_data.gnss) {
-#if defined(CONFIG_LOCATION_METHOD_WIFI)
-		methods[methods_count] = LOCATION_METHOD_WIFI;
-		methods_count++;
-#endif
 		methods[methods_count] = LOCATION_METHOD_GNSS;
 		methods_index_gnss = methods_count;
 		methods_count++;
@@ -257,6 +253,14 @@ static void search_start(void)
 		methods_index_cellular = methods_count;
 		methods_count++;
 	}
+
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
+	if (!copy_cfg.no_data.wifi) {
+		methods[methods_count] = LOCATION_METHOD_WIFI;
+		methods_index_gnss = methods_count;
+		methods_count++;
+	}
+#endif
 
 	location_config_defaults_set(&config, methods_count, methods);
 

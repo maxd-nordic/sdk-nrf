@@ -502,6 +502,12 @@ static void config_print_all(void)
 	} else {
 		LOG_DBG("Requesting of GNSS data is disabled");
 	}
+
+	if (!current_cfg.no_data.wifi) {
+		LOG_DBG("Requesting of WiFi data is enabled");
+	} else {
+		LOG_DBG("Requesting of WiFi data is disabled");
+	}
 }
 
 static void config_distribute(enum data_module_event_type type)
@@ -964,6 +970,18 @@ static void new_config_handle(struct cloud_data_cfg *new_config)
 		config_change = true;
 	}
 
+	if (current_cfg.no_data.wifi != new_config->no_data.wifi) {
+		current_cfg.no_data.wifi = new_config->no_data.wifi;
+
+		if (!current_cfg.no_data.wifi) {
+			LOG_DBG("Requesting of WiFi data is enabled");
+		} else {
+			LOG_DBG("Requesting of WiFi data is disabled");
+		}
+
+		config_change = true;
+	}
+
 	if (new_config->location_timeout > 0) {
 		if (current_cfg.location_timeout != new_config->location_timeout) {
 			current_cfg.location_timeout = new_config->location_timeout;
@@ -1226,7 +1244,9 @@ static void on_all_states(struct data_msg_data *msg)
 			.no_data.gnss =
 				msg->module.cloud.data.config.no_data.gnss,
 			.no_data.neighbor_cell =
-				msg->module.cloud.data.config.no_data.neighbor_cell
+				msg->module.cloud.data.config.no_data.neighbor_cell,
+			.no_data.wifi =
+				msg->module.cloud.data.config.no_data.wifi
 		};
 
 		new_config_handle(&new);

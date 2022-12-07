@@ -86,6 +86,9 @@ struct cloud_data_no_data {
 
 	/** If this flag is set neighbor cell data is not included sample requests. */
 	bool neighbor_cell;
+
+	/** If this flag is set WIFI data is not included in sample requests. */
+	bool wifi;
 };
 
 struct cloud_data_cfg {

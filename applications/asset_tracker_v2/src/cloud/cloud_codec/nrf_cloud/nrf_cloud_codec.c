@@ -468,6 +468,18 @@ static int config_add(cJSON *parent, struct cloud_data_cfg *data, const char *ob
 		json_add_obj_array(nod_list, ncell_str);
 	}
 
+	if (data->no_data.wifi) {
+		cJSON *wifi_str = cJSON_CreateString(CONFIG_NO_DATA_LIST_WIFI);
+
+		if (wifi_str == NULL) {
+			cJSON_Delete(nod_list);
+			err = -ENOMEM;
+			goto exit;
+		}
+
+		json_add_obj_array(nod_list, wifi_str);
+	}
+
 	/* If there are no flag set in the no_data structure, an empty array is encoded. */
 	json_add_obj(config_obj, CONFIG_NO_DATA_LIST, nod_list);
 	json_add_obj(parent, object_label, config_obj);
@@ -527,6 +539,7 @@ static void config_get(cJSON *parent, struct cloud_data_cfg *data)
 		cJSON *item;
 		bool gnss_found = false;
 		bool ncell_found = false;
+		bool wifi_found = false;
 
 		for (int i = 0; i < cJSON_GetArraySize(nod_list); i++) {
 			item = cJSON_GetArrayItem(nod_list, i);
@@ -538,6 +551,10 @@ static void config_get(cJSON *parent, struct cloud_data_cfg *data)
 			if (strcmp(item->valuestring, CONFIG_NO_DATA_LIST_NEIGHBOR_CELL) == 0) {
 				ncell_found = true;
 			}
+
+			if (strcmp(item->valuestring, CONFIG_NO_DATA_LIST_WIFI) == 0) {
+				wifi_found = true;
+			}
 		}
 
 		/* If a supported entry is present in the no data list we set the corresponding flag
@@ -545,6 +562,7 @@ static void config_get(cJSON *parent, struct cloud_data_cfg *data)
 		 */
 		data->no_data.gnss = gnss_found;
 		data->no_data.neighbor_cell = ncell_found;
+		data->no_data.wifi = wifi_found;
 	}
 }
 
