@@ -104,7 +104,43 @@ exit:
 int cloud_codec_encode_wifi_access_points(struct cloud_codec_data *output,
 					  struct cloud_data_wifi_access_points *wifi_access_points)
 {
-	return -ENOTSUP;
+	int err;
+	char *buffer;
+
+	__ASSERT_NO_MSG(output != NULL);
+	__ASSERT_NO_MSG(wifi_access_points != NULL);
+
+	cJSON *root_obj = cJSON_CreateObject();
+
+	if (root_obj == NULL) {
+		cJSON_Delete(root_obj);
+		return -ENOMEM;
+	}
+
+	err = json_common_wifi_ap_data_add(root_obj, wifi_access_points,
+					   JSON_COMMON_ADD_DATA_TO_OBJECT);
+	if (err) {
+		goto exit;
+	}
+
+	buffer = cJSON_PrintUnformatted(root_obj);
+	if (buffer == NULL) {
+		LOG_ERR("Failed to allocate memory for JSON string");
+
+		err = -ENOMEM;
+		goto exit;
+	}
+
+	if (IS_ENABLED(CONFIG_CLOUD_CODEC_LOG_LEVEL_DBG)) {
+		json_print_obj("Encoded message:\n", root_obj);
+	}
+
+	output->buf = buffer;
+	output->len = strlen(buffer);
+
+exit:
+	cJSON_Delete(root_obj);
+	return err;
 }
 #endif
 

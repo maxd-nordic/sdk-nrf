@@ -41,6 +41,9 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_CLOUD_INTEGRATION_LOG_LEVEL);
 #define MEMFAULT_TOPIC "%s/memfault"							\
 		IF_ENABLED(CONFIG_DEBUG_MODULE_MEMFAULT_USE_EXTERNAL_TRANSPORT,		\
 			   ("/" CONFIG_MEMFAULT_NCS_PROJECT_KEY))
+#define WIFI_AP_TOPIC "%s/wifiap"
+#define WIFI_AP_TOPIC_LEN (AWS_CLOUD_CLIENT_ID_LEN + 7)
+
 #if defined(CONFIG_DEBUG_MODULE_MEMFAULT_USE_EXTERNAL_TRANSPORT)
 #define MEMFAULT_TOPIC_LEN (AWS_CLOUD_CLIENT_ID_LEN + 9 + sizeof(CONFIG_MEMFAULT_NCS_PROJECT_KEY))
 #else
@@ -57,9 +60,10 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_CLOUD_INTEGRATION_LOG_LEVEL);
 #define APP_PUB_TOPIC_IDX_AGPS			3
 #define APP_PUB_TOPIC_IDX_PGPS			4
 #define APP_PUB_TOPIC_IDX_MEMFAULT		5
+#define APP_PUB_TOPIC_IDX_WIFI_AP		6
 
 #define APP_SUB_TOPICS_COUNT			3
-#define APP_PUB_TOPICS_COUNT			6
+#define APP_PUB_TOPICS_COUNT			7
 
 #define REQUEST_SHADOW_DOCUMENT_STRING ""
 
@@ -73,6 +77,7 @@ static char agps_response_topic[AGPS_RESPONSE_TOPIC_LEN + 1];
 static char pgps_request_topic[PGPS_REQUEST_TOPIC_LEN + 1];
 static char pgps_response_topic[PGPS_RESPONSE_TOPIC_LEN + 1];
 static char memfault_topic[MEMFAULT_TOPIC_LEN + 1];
+static char wifi_ap_topic[WIFI_AP_TOPIC_LEN + 1];
 
 static struct aws_iot_topic_data sub_topics[APP_SUB_TOPICS_COUNT];
 static struct aws_iot_topic_data pub_topics[APP_PUB_TOPICS_COUNT];
@@ -146,6 +151,14 @@ static int populate_app_endpoint_topics(void)
 
 	pub_topics[APP_PUB_TOPIC_IDX_MEMFAULT].str = memfault_topic;
 	pub_topics[APP_PUB_TOPIC_IDX_MEMFAULT].len = MEMFAULT_TOPIC_LEN;
+
+	err = snprintf(wifi_ap_topic, sizeof(wifi_ap_topic), WIFI_AP_TOPIC, client_id_buf);
+	if (err != WIFI_AP_TOPIC_LEN) {
+		return -ENOMEM;
+	}
+
+	pub_topics[APP_PUB_TOPIC_IDX_WIFI_AP].str = wifi_ap_topic;
+	pub_topics[APP_PUB_TOPIC_IDX_WIFI_AP].len = WIFI_AP_TOPIC_LEN;
 
 	err = snprintf(cfg_topic, sizeof(cfg_topic), CFG_TOPIC, client_id_buf);
 	if (err != CFG_TOPIC_LEN) {
@@ -504,6 +517,29 @@ int cloud_wrap_neighbor_cells_send(char *buf, size_t len, bool ack, uint32_t id)
 
 	return 0;
 }
+
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
+int cloud_wrap_wifi_access_points_send(char *buf, size_t len, bool ack, uint32_t id)
+{
+	int err;
+	struct aws_iot_data msg = {
+		.ptr = buf,
+		.len = len,
+		.message_id = id,
+		.qos = ack ? MQTT_QOS_1_AT_LEAST_ONCE : MQTT_QOS_0_AT_MOST_ONCE,
+		/* <imei>/ncellmeas */
+		.topic = pub_topics[APP_PUB_TOPIC_IDX_WIFI_AP]
+	};
+
+	err = aws_iot_send(&msg);
+	if (err) {
+		LOG_ERR("aws_iot_send, error: %d", err);
+		return err;
+	}
+
+	return 0;
+}
+#endif
 
 int cloud_wrap_agps_request_send(char *buf, size_t len, bool ack, uint32_t id)
 {

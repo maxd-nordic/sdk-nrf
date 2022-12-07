@@ -13,6 +13,8 @@
 #include "json_helpers.h"
 #include "json_protocol_names.h"
 
+#include <net/nrf_cloud_location.h>
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(json_common, CONFIG_CLOUD_CODEC_LOG_LEVEL);
 
@@ -698,6 +700,98 @@ int json_common_neighbor_cells_data_add(cJSON *parent,
 	data->queued = false;
 	return err;
 }
+
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
+int json_common_wifi_ap_data_add(cJSON *parent,
+				 struct cloud_data_wifi_access_points *data,
+				 enum json_common_op_code op)
+{
+	int err;
+
+	if (!data->queued) {
+		return -ENODATA;
+	}
+
+	err = date_time_uptime_to_unix_time_ms(&data->ts);
+	if (err) {
+		LOG_ERR("date_time_uptime_to_unix_time_ms, error: %d", err);
+		return err;
+	}
+
+	err = json_add_number(parent, DATA_TIMESTAMP, data->ts);
+	if (err) {
+		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
+		return err;
+	}
+
+	if (data->cnt < NRF_CLOUD_LOCATION_WIFI_AP_CNT_MIN) {
+		return -ENODATA;
+	}
+
+	cJSON *ap_array = cJSON_CreateArray();
+
+	if (ap_array == NULL) {
+		return err;
+	}
+
+	for (size_t i = 0; i < data->cnt; ++i) {
+		char str_buf[MAX(WIFI_MAC_ADDR_STR_LEN, WIFI_SSID_MAX_LEN) + 1];
+		struct wifi_scan_result const *const ap = (data->ap_info + i);
+	
+		cJSON *ap_obj = cJSON_CreateObject();
+		int ret;
+
+		if (!cJSON_AddItemToArray(ap_array, ap_obj)) {
+			cJSON_Delete(ap_obj);
+			goto cleanup;
+		}
+
+		/* MAC address is the only required parameter for the API call */
+		ret = snprintk(str_buf, sizeof(str_buf),
+			       WIFI_MAC_ADDR_TEMPLATE,
+			       ap->mac[0], ap->mac[1], ap->mac[2],
+			       ap->mac[3], ap->mac[4], ap->mac[5]);
+		if ((ret != WIFI_MAC_ADDR_STR_LEN) ||
+		    json_add_str(ap_obj, DATA_WIFI_AP_MAC, str_buf)) {
+			goto cleanup;
+		}
+
+		/* Optional parameters for the API call */
+		memset(str_buf, 0, sizeof(str_buf));
+		if ((ap->ssid_length > 0) && (ap->ssid_length <= WIFI_SSID_MAX_LEN)) {
+			memcpy(str_buf, ap->ssid, ap->ssid_length);
+		}
+		if ((str_buf[0] != '\0') &&
+		    json_add_str(ap_obj, DATA_WIFI_AP_SSID, str_buf)) {
+			goto cleanup;
+		}
+
+		if ((ap->rssi != NRF_CLOUD_LOCATION_WIFI_OMIT_RSSI) &&
+		    json_add_number(ap_obj, DATA_WIFI_AP_RSSI, ap->rssi)) {
+			goto cleanup;
+		}
+
+		if ((ap->channel != NRF_CLOUD_LOCATION_WIFI_OMIT_CHAN) &&
+		    json_add_number(ap_obj, DATA_WIFI_AP_CHAN, ap->channel)) {
+			goto cleanup;
+		}
+
+	}
+
+	err = op_code_handle(parent, JSON_COMMON_ADD_DATA_TO_OBJECT,
+				     DATA_WIFI_AP_MEAS, ap_array, NULL);
+	if (err) {
+		goto cleanup;
+	}
+
+	data->queued = false;
+	return err;
+cleanup:
+	cJSON_Delete(ap_array);
+	LOG_ERR("Failed to format WiFi location request, out of memory");
+	return -ENOMEM;
+}
+#endif
 
 int json_common_agps_request_data_add(cJSON *parent,
 				      struct cloud_data_agps_request *data,

@@ -72,6 +72,12 @@
 #define DATA_NEIGHBOR_CELLS_NEIGHBOR_MEAS "nmr"
 #define DATA_NEIGHBOR_CELLS_PCI		  "cell"
 
+#define DATA_WIFI_AP_MEAS		"v"
+#define DATA_WIFI_AP_MAC		"mac"
+#define DATA_WIFI_AP_SSID		"ssid"
+#define DATA_WIFI_AP_RSSI		"rssi"
+#define DATA_WIFI_AP_CHAN		"chan"
+
 #define DATA_AGPS_REQUEST_MCC   "mcc"
 #define DATA_AGPS_REQUEST_MNC   "mnc"
 #define DATA_AGPS_REQUEST_CID   "cell"
