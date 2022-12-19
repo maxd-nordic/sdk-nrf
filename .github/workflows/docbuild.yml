@@ -71,6 +71,12 @@ jobs:
           cmake -GNinja -Bdoc/_build -Sdoc -DSPHINXOPTS_EXTRA="-W"
           ninja -C doc/_build
 
+      - name: Upload raw docs build
+        uses: actions/upload-artifact@v2
+        with:
+          name: docbuild
+          path: ncs/nrf/doc/_build
+
       - name: Build cache
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'external') }}
         working-directory: ncs/nrf
