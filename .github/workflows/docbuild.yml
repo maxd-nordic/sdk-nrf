@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - 'v*-branch'
+      - doctesting
     paths:
       - '.github/workflows/docbuild.yml'
       - '**.rst'
@@ -41,7 +42,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt-get install -y ninja-build mscgen plantuml
+          sudo apt-get install -y ninja-build mscgen plantuml pipx python3.8-venv
           DOXYGEN_VERSION=$(cat ./ncs/nrf/scripts/tools-versions-linux.txt |grep 'doxygen' | sed 's/^.*=//')
           wget --no-verbose https://downloads.sourceforge.net/project/doxygen/rel-${DOXYGEN_VERSION}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
           tar xf doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
@@ -103,6 +104,25 @@ jobs:
             fi
             echo "publish2 main ${VERSION} __FILE__" > monitor.txt
           fi
+
+      - name: Build Docsets
+        working-directory: ncs/nrf/doc/_build
+        run: |
+          mkdir docsets          
+          pipx run doc2dash -d docsets/ html/kconfig
+          pipx run doc2dash -d docsets/ html/matter
+          pipx run doc2dash -d docsets/ html/mcuboot
+          pipx run doc2dash -d docsets/ html/nrf
+          pipx run doc2dash -d docsets/ html/nrfxlib
+          pipx run doc2dash -d docsets/ html/nrfx
+          pipx run doc2dash -d docsets/ html/tfm
+          pipx run doc2dash -d docsets/ html/zephyr
+
+      - name: Upload Docsets
+        uses: actions/upload-artifact@v2
+        with:
+          name: docsets
+          path: ncs/nrf/doc/_build/docsets
 
       - name: Archive cache
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'external') }}
