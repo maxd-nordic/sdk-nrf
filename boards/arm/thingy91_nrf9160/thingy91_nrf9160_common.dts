@@ -86,6 +86,7 @@
 		nmos-pwm = &pwm2;
 		mcuboot-button0 = &button0;
 		mcuboot-led0 = &blue_led;
+		bme68x = &bme680;
 	};
 };
 
