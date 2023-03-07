@@ -35,6 +35,17 @@
 extern "C" {
 #endif
 
+struct cloud_data_power {
+	/* V */
+	float voltage;
+	/* mA */
+	float current;
+	/** Timestamp. UNIX milliseconds. */
+	int64_t ts;
+	/** Flag signifying that the data entry is to be encoded. */
+	bool queued : 1;
+};
+
 /** @brief Structure containing battery data published to cloud. */
 struct cloud_data_battery {
 	/** Battery voltage level. */
@@ -176,6 +187,8 @@ struct cloud_data_modem_dynamic {
 	char apn[CONFIG_CLOUD_CODEC_APN_LEN_MAX];
 	/** Mobile Country Code and Mobile Network Code. */
 	char mccmnc[7];
+	/* Energy estimate */
+	uint16_t energy_estimate;
 	/** Flag signifying that the data entry is to be encoded. */
 	bool queued : 1;
 };
@@ -409,7 +422,8 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf);
+			    struct cloud_data_battery *bat_buf,
+			    struct cloud_data_power *pwr_buf);
 
 /**
  * @brief Encode UI data.
@@ -472,13 +486,15 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
 				  struct cloud_data_battery *bat_buf,
+				  struct cloud_data_power *pwr_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,
 				  size_t modem_stat_buf_count,
 				  size_t modem_dyn_buf_count,
 				  size_t ui_buf_count,
 				  size_t impact_buf_count,
-				  size_t bat_buf_count);
+				  size_t bat_buf_count,
+				  size_t pwr_buf_count);
 
 void cloud_codec_populate_sensor_buffer(
 				struct cloud_data_sensors *sensor_buffer,
@@ -500,6 +516,11 @@ void cloud_codec_populate_impact_buffer(
 void cloud_codec_populate_bat_buffer(struct cloud_data_battery *bat_buffer,
 				     struct cloud_data_battery *new_bat_data,
 				     int *head_bat_buf,
+				     size_t buffer_count);
+
+void cloud_codec_populate_pwr_buffer(struct cloud_data_power *pwr_buffer,
+				     struct cloud_data_power *new_pwr_data,
+				     int *head_pwr_buf,
 				     size_t buffer_count);
 
 void cloud_codec_populate_gnss_buffer(struct cloud_data_gnss *gnss_buffer,

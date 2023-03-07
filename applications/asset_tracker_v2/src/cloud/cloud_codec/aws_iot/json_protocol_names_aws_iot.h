@@ -16,6 +16,7 @@
 #define MODEM_CELL_ID	       "cell"
 #define MODEM_IP_ADDRESS       "ip"
 #define MODEM_IMEI             "imei"
+#define MODEM_ENERGY_ESTIMATE  "eest"
 
 #define CONFIG_DEVICE_MODE		  "act"
 #define CONFIG_ACTIVE_TIMEOUT		  "actwt"
@@ -45,6 +46,8 @@
 #define DATA_CONFIG	    "cfg"
 #define DATA_VERSION	    "version"
 #define DATA_IMPACT	    "impact"
+#define DATA_SOLAR	    "sol"
+#define DATA_SOLAR_GAIN	    "gain"
 
 #define DATA_MOVEMENT   "acc"
 #define DATA_MOVEMENT_X "x"

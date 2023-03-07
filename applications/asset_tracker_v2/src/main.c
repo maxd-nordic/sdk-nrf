@@ -30,6 +30,10 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
 
+#if defined(CONFIG_INA3221_DRIVER)
+#include "ina3221.h"
+#endif
+
 LOG_MODULE_REGISTER(MODULE, CONFIG_APPLICATION_MODULE_LOG_LEVEL);
 
 /* Message structure. Events from other modules are converted to messages
@@ -385,6 +389,7 @@ static void data_get(void)
 	app_module_event->data_list[count++] = APP_DATA_MODEM_DYNAMIC;
 	app_module_event->data_list[count++] = APP_DATA_BATTERY;
 	app_module_event->data_list[count++] = APP_DATA_ENVIRONMENTAL;
+	app_module_event->data_list[count++] = APP_DATA_POWER;
 
 	if (!modem_static_sampled) {
 		app_module_event->data_list[count++] = APP_DATA_MODEM_STATIC;
@@ -542,6 +547,14 @@ void main(void)
 		LOG_ERR("Failed starting module, error: %d", err);
 		SEND_ERROR(app, APP_EVT_ERROR, err);
 	}
+
+#if defined(CONFIG_INA3221_DRIVER)
+	err = ina3221_init();
+	if (!err) {
+		LOG_WRN("INA3221 successfully initialized");
+	}
+	k_sleep(K_SECONDS(1));
+#endif
 
 	while (true) {
 		module_get_next_msg(&self, &msg);

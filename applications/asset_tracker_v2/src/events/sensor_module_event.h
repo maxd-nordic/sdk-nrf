@@ -47,6 +47,9 @@ enum sensor_module_event_type {
 	/** Environmental sensors are not supported on the current board. */
 	SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED,
 
+	/** Power!! */
+	SENSOR_EVT_POWER_DATA_READY,
+
 	/** The sensor module has performed all procedures to prepare for
 	 *  a shutdown of the system. The event carries the ID (id) of the module.
 	 */
@@ -90,6 +93,13 @@ struct sensor_module_impact_data {
 	double magnitude;
 };
 
+struct sensor_module_power_data {
+	/** Uptime when the data was sampled. */
+	int64_t timestamp;
+	float voltage;
+	float current;
+};
+
 /** @brief Sensor module event. */
 struct sensor_module_event {
 	/** Sensor module application event header. */
@@ -103,6 +113,8 @@ struct sensor_module_event {
 		struct sensor_module_accel_data accel;
 		/** Variable that contains impact data. */
 		struct sensor_module_impact_data impact;
+		/***/
+		struct sensor_module_power_data power;
 		/** Module ID, used when acknowledging shutdown requests. */
 		uint32_t id;
 		/** Code signifying the cause of error. */

@@ -13,6 +13,10 @@
 #include "ext_sensors.h"
 #endif
 
+#if defined(CONFIG_INA3221_DRIVER)
+#include "ina3221.h"
+#endif
+
 #define MODULE sensor_module
 
 #include "modules_common.h"
@@ -245,8 +249,8 @@ static void apply_config(struct sensor_msg_data *msg)
 static void environmental_data_get(void)
 {
 	struct sensor_module_event *sensor_module_event;
-#if defined(CONFIG_EXTERNAL_SENSORS)
 	int err;
+#if defined(CONFIG_EXTERNAL_SENSORS)
 	double temperature = 0, humidity = 0, pressure = 0;
 	uint16_t bsec_air_quality = UINT16_MAX;
 
@@ -305,6 +309,37 @@ static void environmental_data_get(void)
 	sensor_module_event->type = SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED;
 #endif
 	APP_EVENT_SUBMIT(sensor_module_event);
+
+#if defined(CONFIG_INA3221_DRIVER)
+	struct sensor_module_event *sensor_module_event2;
+
+	ina3221_start_measurement();
+
+	do {
+		k_sleep(K_SECONDS(1));
+	} while  (!ina3221_measurement_ready());
+
+	LOG_WRN("Measurement ready");
+	float voltage = 0;
+	float current = 0;
+	err = ina3221_get_voltage(0, &voltage);
+	err = ina3221_get_current(0, &current);
+	if (err) {
+		LOG_ERR("Power get channel error %d", err);
+		return;
+	} else {
+		LOG_WRN("Channel %d: %.2fmA", 0, current * 1000.0);
+		sensor_module_event2 = new_sensor_module_event();
+		__ASSERT(sensor_module_event2, "Not enough heap left to allocate event");
+
+		sensor_module_event2->data.power.voltage = voltage;
+		sensor_module_event2->data.power.current = current;
+		sensor_module_event2->data.power.timestamp = k_uptime_get();
+		sensor_module_event2->type = SENSOR_EVT_POWER_DATA_READY;
+	}
+	APP_EVENT_SUBMIT(sensor_module_event2);
+#endif
+	ARG_UNUSED(err);
 }
 
 static int setup(void)

@@ -39,6 +39,7 @@ enum json_common_buffer_type {
 	JSON_COMMON_GNSS,
 	JSON_COMMON_SENSOR,
 	JSON_COMMON_BATTERY,
+	JSON_COMMON_POWER,
 
 	JSON_COMMON_COUNT
 };
@@ -243,6 +244,12 @@ int json_common_pgps_request_data_add(cJSON *parent, struct cloud_data_pgps_requ
  */
 int json_common_battery_data_add(cJSON *parent,
 				 struct cloud_data_battery *data,
+				 enum json_common_op_code op,
+				 const char *object_label,
+				 cJSON **parent_ref);
+
+int json_common_power_data_add(cJSON *parent,
+				 struct cloud_data_power *data,
 				 enum json_common_op_code op,
 				 const char *object_label,
 				 cJSON **parent_ref);
