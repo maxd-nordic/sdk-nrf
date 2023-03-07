@@ -199,6 +199,20 @@ int json_common_neighbor_cells_data_add(cJSON *parent,
 					struct cloud_data_neighbor_cells *data,
 					enum json_common_op_code op);
 
+#if defined(CONFIG_LOCATION_METHOD_WIFI)
+/**
+ * @brief 
+ * 
+ * @param parent 
+ * @param data 
+ * @param op 
+ * @return int 
+ */
+int json_common_wifi_ap_data_add(cJSON *parent,
+				 struct cloud_data_wifi_access_points *data,
+				 enum json_common_op_code op);
+#endif
+
 /**
  * @brief Encode and add A-GPS request data to the parent object.
  *
