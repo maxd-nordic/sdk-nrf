@@ -13,6 +13,7 @@
 		zephyr,console = &uart0;
 		zephyr,shell-uart = &uart0;
 		zephyr,uart-mcumgr = &uart0;
+		nordic,pm-ext-flash = &flash_ext;
 	};
 
 	buttons {
@@ -27,15 +28,15 @@
 	leds {
 		compatible = "gpio-leds";
 		red_led: led_1 {
-			gpios = <&gpio0 31 0>;
+			gpios = <&gpio0 29 0>;
 			label = "RGB red channel";
 		};
 		green_led: led_2 {
-			gpios = <&gpio0 29 0>;
+			gpios = <&gpio0 30 0>;
 			label = "RGB green channel";
 		};
 		blue_led: led_3 {
-			gpios = <&gpio0 30 0>;
+			gpios = <&gpio0 31 0>;
 			label = "RGB blue channel";
 		};
 	};
@@ -69,6 +70,7 @@
 		pwm-led2 = &pwm_led2;
 		rgb-pwm = &pwm0;
 		mcuboot-button0 = &button0;
+		spi-flash0 = &flash_ext;
 	};
 };
 
@@ -92,14 +94,6 @@
 	pinctrl-names = "default", "sleep";
 };
 
-/* PWM1 is intended for buzzer control */
-&pwm1 {
-	status = "okay";
-	pinctrl-0 = <&pwm1_default>;
-	pinctrl-1 = <&pwm1_sleep>;
-	pinctrl-names = "default", "sleep";
-};
-
 &i2c2 {
 	compatible = "nordic,nrf-twim";
 	status = "okay";
@@ -113,13 +107,6 @@
 		label = "BME680";
 		reg = <0x76>;
 	};
-
-	bh1749: bh1749@38 {
-		compatible = "rohm,bh1749";
-		label = "BH1749";
-		reg = <0x38>;
-		int-gpios = <&gpio0 28 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
-	};
 };
 
 &spi3 {
@@ -131,13 +118,23 @@
 	pinctrl-1 = <&spi3_sleep>;
 	pinctrl-names = "default", "sleep";
 
-	adxl372: adxl372@0 {
-		compatible = "adi,adxl372";
-		label = "ADXL372";
+	flash_ext: GD25LB256E@0 {
+		compatible = "jedec,spi-nor";
+		label = "GD25LB256E";
+		reg = <0>;
 		spi-max-frequency = <8000000>;
-		reg = <1>;
-		int1-gpios = <&gpio0 6 0>;
+		size = <268435456>;
+		has-dpd;
+		t-enter-dpd = <3000>;
+		t-exit-dpd = <30000>;
+		sfdp-bfp = [e5 20 ea ff  ff ff ff 0f  44 eb 08 6b  00 3b 00 bb
+					fe ff ff ff  ff ff 00 ff  ff ff 44 eb  0c 20 0f 52
+					10 d8 00 ff  d5 31 b1 fe  82 e4 14 4c  ec 60 06 33
+					7a 75 7a 75  04 bd d5 5c  29 06 74 00  08 50 00 01
+					];
+		jedec-id = [c8 67 19];
 	};
+
 };
 
 &timer0 {

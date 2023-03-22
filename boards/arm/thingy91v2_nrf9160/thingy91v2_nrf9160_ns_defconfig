@@ -30,6 +30,11 @@ CONFIG_I2C=y
 # Enable SPI
 CONFIG_SPI=y
 
+# Enable Flash
+CONFIG_FLASH=y
+CONFIG_SPI_NOR=y
+CONFIG_SPI_NOR_SFDP_DEVICETREE=y
+
 # Enable power management IC ADP536x
 CONFIG_ADP536X=y
 
