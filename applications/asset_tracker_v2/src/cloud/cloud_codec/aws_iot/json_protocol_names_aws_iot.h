@@ -62,7 +62,6 @@
 #define DATA_GNSS_HEADING   "hdg"
 #define DATA_GNSS_ACCURACY  "acc"
 
-#define DATA_NEIGHBOR_CELLS_ROOT	  "lte"
 #define DATA_NEIGHBOR_CELLS_MCC		  "mcc"
 #define DATA_NEIGHBOR_CELLS_MNC		  "mnc"
 #define DATA_NEIGHBOR_CELLS_CID		  "cell"
@@ -73,8 +72,6 @@
 #define DATA_NEIGHBOR_CELLS_RSRQ	  "rsrq"
 #define DATA_NEIGHBOR_CELLS_NEIGHBOR_MEAS "nmr"
 #define DATA_NEIGHBOR_CELLS_PCI		  "cell"
-#define DATA_WIFI_ROOT			  "wifi"
-#define DATA_WIFI_AP_MEAS		  "aps"
 
 #define DATA_AGPS_REQUEST_MCC   "mcc"
 #define DATA_AGPS_REQUEST_MNC   "mnc"
