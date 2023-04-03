@@ -13,10 +13,6 @@
 #include "ext_sensors.h"
 #endif
 
-#if defined(CONFIG_INA3221_DRIVER)
-#include "ina3221.h"
-#endif
-
 #define MODULE sensor_module
 
 #include "modules_common.h"
@@ -310,33 +306,42 @@ static void environmental_data_get(void)
 #endif
 	APP_EVENT_SUBMIT(sensor_module_event);
 
-#if defined(CONFIG_INA3221_DRIVER)
+#if defined(CONFIG_INA3221)
+	const struct device *ina3221_dev = DEVICE_DT_GET_ONE(ti_ina3221);
+	struct sensor_value voltage, current;
 	struct sensor_module_event *sensor_module_event2;
 
-	ina3221_start_measurement();
-
-	do {
-		k_sleep(K_SECONDS(1));
-	} while  (!ina3221_measurement_ready());
-
-	LOG_WRN("Measurement ready");
-	float voltage = 0;
-	float current = 0;
-	err = ina3221_get_voltage(0, &voltage);
-	err = ina3221_get_current(0, &current);
-	if (err) {
-		LOG_ERR("Power get channel error %d", err);
+	if (!device_is_ready(ina3221_dev)) {
+		LOG_ERR("sensor: ina3221 not ready.");
 		return;
-	} else {
-		LOG_WRN("Channel %d: %.2fmA", 0, current * 1000.0);
-		sensor_module_event2 = new_sensor_module_event();
-		__ASSERT(sensor_module_event2, "Not enough heap left to allocate event");
-
-		sensor_module_event2->data.power.voltage = voltage;
-		sensor_module_event2->data.power.current = current;
-		sensor_module_event2->data.power.timestamp = k_uptime_get();
-		sensor_module_event2->type = SENSOR_EVT_POWER_DATA_READY;
 	}
+
+	/* perform measurement */
+	if (sensor_sample_fetch(ina3221_dev)) {
+		LOG_ERR("sensor_sample fetch failed");
+	}
+
+	if (sensor_channel_get(ina3221_dev, SENSOR_CHAN_VOLTAGE, &voltage)) {
+		LOG_ERR("sensor_sample get voltage failed");
+		return;
+	}
+
+	if (sensor_channel_get(ina3221_dev, SENSOR_CHAN_CURRENT, &current)) {
+		LOG_ERR("sensor_sample get current failed");
+		return;
+	}
+
+	float voltage_f = sensor_value_to_double(&voltage);
+	float current_f = sensor_value_to_double(&current);
+	LOG_WRN("Channel %d: %.2fmA", 0, current_f * 1000.0);
+	sensor_module_event2 = new_sensor_module_event();
+	__ASSERT(sensor_module_event2, "Not enough heap left to allocate event");
+
+	sensor_module_event2->data.power.voltage = voltage_f;
+	sensor_module_event2->data.power.current = current_f;
+	sensor_module_event2->data.power.timestamp = k_uptime_get();
+	sensor_module_event2->type = SENSOR_EVT_POWER_DATA_READY;
+	
 	APP_EVENT_SUBMIT(sensor_module_event2);
 #endif
 	ARG_UNUSED(err);
