@@ -54,6 +54,8 @@ enum sensor_module_event_type {
 
 	/** Battery data is not supported on the current board. */
 	SENSOR_EVT_FUEL_GAUGE_NOT_SUPPORTED,
+	/** Solar shield current measurement is ready. */
+	SENSOR_EVT_SOLAR_DATA_READY,
 
 	/** The sensor module has performed all procedures to prepare for
 	 *  a shutdown of the system. The event carries the ID (id) of the module.
@@ -112,6 +114,12 @@ struct sensor_module_batt_lvl_data {
 
 	int mV;
 };
+struct sensor_module_solar_data {
+	/** Uptime when the data was sampled. */
+	int64_t timestamp;
+	float voltage;
+	float current;
+};
 
 /** @brief Sensor module event. */
 struct sensor_module_event {
@@ -128,6 +136,8 @@ struct sensor_module_event {
 		struct sensor_module_impact_data impact;
 		/** Variable that contains battery level data. */
 		struct sensor_module_batt_lvl_data bat;
+		/** Variable that contains solar shield data. */
+		struct sensor_module_solar_data solar;
 		/** Module ID, used when acknowledging shutdown requests. */
 		uint32_t id;
 		/** Code signifying the cause of error. */

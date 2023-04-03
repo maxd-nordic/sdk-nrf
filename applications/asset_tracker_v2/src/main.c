@@ -388,6 +388,9 @@ static void data_get(void)
 	if (IS_ENABLED(CONFIG_SENSOR_MODULE)) {
 		app_module_event->data_list[count++] = APP_DATA_BATTERY;
 		app_module_event->data_list[count++] = APP_DATA_ENVIRONMENTAL;
+		if (IS_ENABLED(CONFIG_INA3221)) {
+			app_module_event->data_list[count++] = APP_DATA_SOLAR;
+		}
 	}
 
 	if (IS_ENABLED(CONFIG_LOCATION_MODULE) &&
