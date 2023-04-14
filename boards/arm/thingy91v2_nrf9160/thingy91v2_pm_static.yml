@@ -1,65 +1,104 @@
-app: {address: 0x18000, size: 0x5b000}
-mcuboot:
+b0:
   address: 0x0
-  placement:
-    before: [mcuboot_primary]
-  size: 0xc000
-mcuboot_pad:
-  address: 0xc000
-  placement:
-    align: {start: 0x1000}
-    before: [mcuboot_primary_app]
+  size: 0x8000
+  region: flash_primary
+b0_container:
+  address: 0x0
+  size: 0x8000
+  region: flash_primary
+  span: [b0]
+s0:
+  address: 0x8000
+  size: 0x14000
+  span: [mcuboot, s0_pad]
+  region: flash_primary
+s0_pad:
+  address: 0x8000
   size: 0x200
+  share_size: [mcuboot_pad]
+  region: flash_primary
+s0_image:
+  address: 0x8200
+  size: 0x13e00
+  span: [mcuboot]
+  region: flash_primary
+mcuboot:
+  address: 0x8200
+  size: 0x13e00
+  region: flash_primary
+s1:
+  address: 0x1c000
+  size: 0x14000
+  span: [s1_pad, s1_image]
+  region: flash_primary
+s1_pad:
+  address: 0x1c000
+  size: 0x200
+  region: flash_primary
+  share_size: [mcuboot_pad]
+s1_image:
+  address: 0x1c200
+  size: 0x13e00
+  share_size: [mcuboot]
+  region: flash_primary
 mcuboot_primary:
-  address: 0xc000
-  size: 0x69000
-  span: [tfm, mcuboot_pad, app]
-mcuboot_primary_app:
-  address: 0xc200
-  size: 0x68e00
-  span: [app, tfm]
-mcuboot_scratch:
-  address: 0xde000
-  placement:
-    after: [app]
-    align: {start: 0x1000}
-  size: 0x1e000
-mcuboot_secondary:
-  address: 0x75000
-  placement:
-    after: [mcuboot_primary]
-    align: {start: 0x1000}
-  share_size: [mcuboot_primary]
-  size: 0x69000
-EMPTY_0:
-  address: 0xfc000
-  size: 0x2000
-settings_storage:
-  address: 0xfe000
-  placement:
-    after: [mcuboot_scratch]
-  size: 0x2000
-nonsecure_storage:
-  address: 0xfe000
-  size: 0x2000
-  span: [settings_storage]
+  address: 0x30000
+  size: 0xD0000
+  span: [mcuboot_pad, app, tfm]
+  region: flash_primary
 tfm_secure:
-  address: 0xc000
-  size: 0xc000
+  address: 0x30000
+  size: 0x8000
   span: [mcuboot_pad, tfm]
-tfm_nonsecure:
-  address: 0x18000
-  size: 0x5b000
-  span: [app]
+  region: flash_primary
+mcuboot_pad:
+  address: 0x30000
+  size: 0x200
+  region: flash_primary
+mcuboot_primary_app:
+  address: 0x30200
+  size: 0xcfe00
+  span: [tfm, app]
+  region: flash_primary
+app_image:
+  address: 0x30200
+  size: 0xcfe00
+  span: [tfm, app]
+  region: flash_primary
 tfm:
-  address: 0xc200
-  size: 0xbe00
+  address: 0x30200
+  size: 0x7e00
+  region: flash_primary
+tfm_nonsecure:
+  address: 0x38000
+  size: 0xc8000
+  span: [app]
+  region: flash_primary
+app:
+  address: 0x38000
+  size: 0xc8000
+  region: flash_primary
+
 external_flash:
+  device: GD25LB256E
   address: 0x0
   size: 0x2000000
+  span: [mcuboot_secondary]
   region: external_flash
-  span: [flash_test]
-flash_test:
-  address: 0x1000000
-  size: 0x1000000
+mcuboot_secondary:
+  device: GD25LB256E
+  address: 0x0
+  size: 0xD0000
+  share_size: [mcuboot_primary]
+  region: external_flash
+nonsecure_storage:
+  device: GD25LB256E
+  address: 0xD0000
+  size: 0x2000
+  span: [settings_storage]
+  region: external_flash
+settings_storage:
+  device: GD25LB256E
+  address: 0xD0000
+  size: 0x2000
   region: external_flash
