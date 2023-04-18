@@ -17,16 +17,18 @@
 #include <zephyr/storage/flash_map.h>
 
 #include <stdlib.h>
+#define FLASH_TEST_ID EXTERNAL_FLASH
+#define FLASH_TEST_NAME external_flash
 
-#define EXT_FLASH_DEVICE DEVICE_DT_GET(DT_ALIAS(ext_flash))
-#define FLASH_TEST_OFFSET FLASH_AREA_OFFSET(flash_test)
-#define FLASH_TEST_SIZE FLASH_AREA_SIZE(flash_test)
+#define EXT_FLASH_DEVICE DEVICE_DT_GET(DT_ALIAS(FLASH_TEST_NAME))
+#define FLASH_TEST_OFFSET FLASH_AREA_OFFSET(FLASH_TEST_NAME)
+#define FLASH_TEST_SIZE FLASH_AREA_SIZE(FLASH_TEST_NAME)
 #define BUF_SIZE 1024
 #define TRACE_MAGIC_INITIALIZED 0xA7F2C1B8 // Arbitrary
 
 static const struct flash_area *flash_test_area;
 static const struct device *flash_dev;
-static struct flash_sector flash_test_sectors[256];
+static struct flash_sector flash_test_sectors[512];
 
 static struct fcb test_fcb = {
 	.f_flags = FCB_FLAGS_CRC_DISABLED,
@@ -60,7 +62,7 @@ void main(void)
 	printk("The AT host sample started\n");
 
 	// Open flash area
-	err = flash_area_open(FIXED_PARTITION_ID(FLASH_TEST), &flash_test_area);
+	err = flash_area_open(FIXED_PARTITION_ID(FLASH_TEST_ID), &flash_test_area);
 	printk("flash_area_open: %d\n", err);
 
 	err = flash_area_has_driver(flash_test_area);
@@ -85,7 +87,7 @@ void main(void)
 
 	fparam = flash_get_parameters(flash_dev);
 
-	err = flash_area_get_sectors(FIXED_PARTITION_ID(FLASH_TEST), &f_sector_cnt, flash_test_sectors);
+	err = flash_area_get_sectors(FIXED_PARTITION_ID(FLASH_TEST_ID), &f_sector_cnt, flash_test_sectors);
 	printk("flash_area_get_sectors: %d\n", err);
 	printk("Sectors: %d, first sector: %p, sector size: %d\n",
 		f_sector_cnt, flash_test_sectors, flash_test_sectors[0].fs_size);
@@ -99,7 +101,7 @@ void main(void)
 	test_fcb.f_sector_cnt = f_sector_cnt;
 	printk("test_fcb.f_sector_cnt: %d\n", test_fcb.f_sector_cnt);
 	test_fcb.f_sectors = flash_test_sectors;
-	err = fcb_init(FIXED_PARTITION_ID(FLASH_TEST), &test_fcb);
+	err = fcb_init(FIXED_PARTITION_ID(FLASH_TEST_ID), &test_fcb);
 	printk("fcb_init: %d\n", err);
 
 	// Initialize flash buffer
