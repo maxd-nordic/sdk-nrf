@@ -57,13 +57,26 @@ config BT_HCI_VS
 config HW_STACK_PROTECTION
 	default ARCH_HAS_STACK_PROTECTION
 
+if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+
 config SECURE_BOOT
-	default y if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+	default y
+
+# Please do not use these keys for own custom boards!
+# These are meant as examples and therefore public.
+# The documentation of the nRF Secure Immutable Bootloader and MCUBoot detail on how
+# to set up your own keys.
+
+config SB_SIGNING_KEY_FILE
+	default "$(ZEPHYR_NRF_MODULE_DIR)/boards/arm/thingy91v2_nrf9160/nsib_signing_key.pem"
+config BOOT_SIGNATURE_KEY_FILE
+	default "$(ZEPHYR_NRF_MODULE_DIR)/boards/arm/thingy91v2_nrf9160/mcuboot_signing_key.pem"
 
 config I2C
-	default y if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+	default y
 
 config ADP536X
-	default y if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+	default y
 
+endif # (!IS_SECURE_BOOTLOADER && !MCUBOOT)
 endif # BOARD_THINGY91V2_NRF9160 || BOARD_THINGY91V2_NRF9160_NS
