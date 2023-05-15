@@ -57,6 +57,7 @@ config BT_HCI_VS
 config HW_STACK_PROTECTION
 	default ARCH_HAS_STACK_PROTECTION
 
+# check if we are building for any bootloader
 if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
 
 config SECURE_BOOT
@@ -69,8 +70,6 @@ config SECURE_BOOT
 
 config SB_SIGNING_KEY_FILE
 	default "$(ZEPHYR_NRF_MODULE_DIR)/boards/arm/thingy91v2_nrf9160/nsib_signing_key.pem"
-config BOOT_SIGNATURE_KEY_FILE
-	default "$(ZEPHYR_NRF_MODULE_DIR)/boards/arm/thingy91v2_nrf9160/mcuboot_signing_key.pem"
 
 config I2C
 	default y
