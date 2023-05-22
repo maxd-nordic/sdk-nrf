@@ -107,6 +107,16 @@
 		label = "BME680";
 		reg = <0x76>;
 	};
+	pmic_main: npm1300@6b {
+		compatible = "nordic,npm1300";
+		label = "nPM1300";
+		reg = <0x6b>;
+	};
+	pmic_wifi: npm6001@70 {
+		compatible = "nordic,npm6001-regulator";
+		label = "nPM6001";
+		reg = <0x70>;
+	};
 };
 
 &spi3 {

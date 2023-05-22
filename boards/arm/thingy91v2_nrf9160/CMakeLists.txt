@@ -6,7 +6,7 @@
 
 if(CONFIG_BOARD_THINGY91V2_NRF9160 AND NOT DEFINED CONFIG_MCUBOOT AND NOT DEFINED CONFIG_IS_SECURE_BOOTLOADER)
 	zephyr_library()
-	zephyr_library_sources(adp5360_init.c)
+	zephyr_library_sources(npm1300_init.c)
 endif()
 
 if(CONFIG_BOARD_THINGY91V2_NRF9160_NS)
@@ -15,17 +15,12 @@ if(CONFIG_BOARD_THINGY91V2_NRF9160_NS)
 	# If SPM is used instead, it will run the ADP5360 configuration in secure.
 	if(CONFIG_BUILD_WITH_TFM)
 		zephyr_library()
-		zephyr_library_sources(adp5360_init.c)
+		zephyr_library_sources(npm1300_init.c)
 	endif()
 
 	# Use static partition layout to ensure the partition layout remains
 	# unchanged after DFU. This needs to be made globally available
 	# because it is used in other CMake files.
-	if (CONFIG_SPM)
-		set(PM_STATIC_YML_FILE ${CMAKE_CURRENT_LIST_DIR}/thingy91v2_pm_static_spm.yml CACHE INTERNAL "")
-	else()
-		set(PM_STATIC_YML_FILE ${CMAKE_CURRENT_LIST_DIR}/thingy91v2_pm_static.yml CACHE INTERNAL "")
-	endif()
-endif()
 
-zephyr_library_sources(nrf52840_reset.c)
+	set(PM_STATIC_YML_FILE ${CMAKE_CURRENT_LIST_DIR}/thingy91v2_pm_static.yml CACHE INTERNAL "")
+endif()
