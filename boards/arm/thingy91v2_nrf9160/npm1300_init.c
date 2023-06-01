@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
+#include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/device.h>
@@ -61,13 +62,6 @@ static int power_mgmt_init(void)
 	err = pmic_write_reg(0x0202, 0x00); CHECKERR;
 	err = pmic_write_reg(0x0200, 0x01); CHECKERR;
 
-#if defined(CONFIG_WIFI)
-	// turn on wifi pmic
-	err = pmic_write_reg(0x0800, 0x01); CHECKERR;
-#else
-	// turn off wifi pmic
-	err = pmic_write_reg(0x0801, 0x01); CHECKERR;
-#endif /* defined(CONFIG_WIFI) */
 	
 	// set RF switch to BLE by default
 	err = pmic_write_reg(0x0601, 0x08); CHECKERR;
@@ -78,7 +72,6 @@ static int power_mgmt_init(void)
 	// let BUCK2 be controlled by GPIO2
 	err = pmic_write_reg(0x0602, 0x00); CHECKERR;
 	err = pmic_write_reg(0x040C, 0x18); CHECKERR;
-
 
 	// set bias resistor for 10k NTC 
 	err = pmic_write_reg(0x050A, 0x01); CHECKERR;
@@ -112,6 +105,36 @@ static int power_mgmt_init(void)
 	if (reg != 0x17) {
 		LOG_ERR("unexpected BUCK2 setting: %02X", reg);
 	}
+
+#if defined(CONFIG_WIFI)
+	const struct i2c_dt_spec pmic_wifi = I2C_DT_SPEC_GET(DT_NODELABEL(pmic_wifi));
+
+	// turn on wifi pmic
+	err = pmic_write_reg(0x0800, 0x01); CHECKERR;
+	// try to write to WIFI PMIC
+	// set OVERRIDEPWRUPBUCK to disable BUCK1,2
+	while (i2c_reg_write_byte_dt(&pmic_wifi, 0xAB, 0b00000110)) {
+	}
+
+	LOG_INF("WiFi PMIC is ready");
+
+	/* always select BUCK3 DAC (does not increase power consumption) */
+	err = i2c_reg_write_byte_dt(&pmic_wifi, 0x44, 1U); CHECKERR;
+	// set BUCK3VOUT to SET3V3
+	err = i2c_reg_write_byte_dt(&pmic_wifi, 0x45, 112); CHECKERR;
+	// nRF7002 needs more than 10mA peak, need to set PWM mode
+	// set BUCK3CONFPWMMODE to SETFORCEPWM, PADBUCKMODE2
+	err = i2c_reg_write_byte_dt(&pmic_wifi, 0x4D, 0b00001100); CHECKERR;
+	// set BUCKMODEPADCONF to CMOS, pulldown_enabled
+	err = i2c_reg_write_byte_dt(&pmic_wifi, 0x4E, 0b00111111); CHECKERR;
+	// trigger TASKS_START_BUCK3
+	err = i2c_reg_write_byte_dt(&pmic_wifi, 0x02, 1); CHECKERR;
+	// give BUCK3 time to start up
+	k_sleep(K_USEC(200));
+#else
+	// turn off wifi pmic
+	err = pmic_write_reg(0x0801, 0x01); CHECKERR;
+#endif /* defined(CONFIG_WIFI) */
 
 	LOG_INF("PMIC configuration complete!");
 	return err;

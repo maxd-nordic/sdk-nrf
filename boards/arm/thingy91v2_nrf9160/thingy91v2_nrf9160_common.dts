@@ -122,7 +122,7 @@
 &spi3 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
-	cs-gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
+	cs-gpios = <&gpio0 12 GPIO_ACTIVE_LOW>, <&gpio0 17 GPIO_ACTIVE_LOW>;
 
 	pinctrl-0 = <&spi3_default>;
 	pinctrl-1 = <&spi3_sleep>;
@@ -143,6 +143,17 @@
 					7a 75 7a 75  04 bd d5 5c  29 06 74 00  08 50 00 01
 					];
 		jedec-id = [c8 67 19];
+	};
+
+	nrf700x: nrf7000@1 {
+		compatible = "nordic,nrf700x-spi";
+		status = "okay";
+		reg = <1>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+
+		iovdd-ctrl-gpios = <&gpio0 27 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+		bucken-gpios = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+		host-irq-gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
 	};
 
 };

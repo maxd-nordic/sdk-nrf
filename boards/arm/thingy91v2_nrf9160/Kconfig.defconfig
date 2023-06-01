@@ -6,6 +6,10 @@
 
 if BOARD_THINGY91V2_NRF9160 || BOARD_THINGY91V2_NRF9160_NS
 
+DT_COMPAT_NORDIC_NRF700X_SPI := nordic,nrf700x-spi
+config NRF7002_ON_SPI
+	def_bool $(dt_compat_enabled,$(DT_COMPAT_NORDIC_NRF700X_SPI))
+
 config BOARD
 	default "thingy91v2_nrf9160"
 
