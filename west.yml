@@ -37,7 +37,8 @@ manifest:
       url-base: https://github.com/ant-nrfconnect
     - name: babblesim
       url-base: https://github.com/BabbleSim
-
+    - name: maxd
+      url-base: https://github.com/maxd-nordic
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
   defaults:
@@ -58,8 +59,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: maxd
       repo-path: sdk-zephyr
-      revision: 5385c25be98b6812b765d9ce90e3b2f8a03c5bf1
+      revision: pr-cmsis-dap-rebase-additions
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
