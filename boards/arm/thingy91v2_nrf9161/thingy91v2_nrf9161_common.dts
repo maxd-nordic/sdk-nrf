@@ -3,11 +3,11 @@
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
-#include "thingy91v2_nrf9160_common-pinctrl.dtsi"
+#include "thingy91v2_nrf9161_common-pinctrl.dtsi"
 
 / {
-	model = "Nordic Thingy91 nRF9160";
-	compatible = "nordic,thingy91-nrf9160";
+	model = "Nordic Thingy91 nRF9161";
+	compatible = "nordic,thingy91x-nrf9161";
 
 	chosen {
 		zephyr,console = &uart0;
@@ -246,4 +246,4 @@
 };
 
 /* Include partition configuration file */
-#include "thingy91v2_nrf9160_partition_conf.dts"
+#include "thingy91v2_nrf9161_partition_conf.dts"

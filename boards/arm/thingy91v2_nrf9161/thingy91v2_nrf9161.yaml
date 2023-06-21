@@ -1,11 +1,12 @@
-identifier: thingy91v2_nrf9160_ns
-name: THINGY91-nRF9160-Non-Secure
+identifier: thingy91v2_nrf9161
+name: Thingy91-NRF9161
 type: mcu
 arch: arm
 toolchain:
   - gnuarmemb
   - zephyr
-ram: 128
+ram: 64
 flash: 256
 supported:
+  - gpio
   - i2c

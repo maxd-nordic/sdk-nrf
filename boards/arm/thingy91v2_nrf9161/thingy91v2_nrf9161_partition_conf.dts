@@ -5,9 +5,9 @@
  */
 
 /*
- * Default Flash planning for thingy91v2_nrf9160.
+ * Default Flash planning for thingy91v2_nrf9161.
  *
- * Zephyr build for nRF9160 with ARM TrustZone-M support,
+ * Zephyr build for nRF9161 with ARM TrustZone-M support,
  * implies building Secure and Non-Secure Zephyr images.
  *
  * Secure image will be placed, by default, in flash0
@@ -37,7 +37,7 @@
 	reg = <0x000b0000 0x40000>;
 };
 
-/* Default SRAM planning when building for nRF9160 with
+/* Default SRAM planning when building for nRF9161 with
  * ARM TrustZone-M support
  * - Lowest 64 kB SRAM allocated to Secure image (sram0).
  * - 64 kB SRAM reserved for and used by the BSD socket

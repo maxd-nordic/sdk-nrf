@@ -15,4 +15,4 @@ properties:
     type: phandle-array
     required: true
     description: |
-      GPIO to use as nRF52840 reset line: output in nRF9160, input in nRF52840.
+      GPIO to use as nRF52840 reset line: output in nRF9161, input in nRF52840.
