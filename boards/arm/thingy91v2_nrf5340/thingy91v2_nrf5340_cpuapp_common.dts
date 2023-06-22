@@ -88,6 +88,7 @@
 
 &uart0 {
 	status = "okay";
+	compatible = "nordic,nrf-uarte";
 	current-speed = <115200>;
 	pinctrl-0 = <&uart0_default>;
 	pinctrl-1 = <&uart0_sleep>;
@@ -95,6 +96,7 @@
 };
 
 &uart1 {
+	status = "okay";
 	compatible = "nordic,nrf-uarte";
 	current-speed = <115200>;
 	pinctrl-0 = <&uart1_default>;
