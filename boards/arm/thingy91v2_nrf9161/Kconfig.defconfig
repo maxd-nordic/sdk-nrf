@@ -78,9 +78,6 @@ config SB_SIGNING_KEY_FILE
 config I2C
 	default y
 
-config ADP536X
-	default y
-
 config MODEM_ANTENNA
 	depends on NRF_MODEM_LIB
 	default y
