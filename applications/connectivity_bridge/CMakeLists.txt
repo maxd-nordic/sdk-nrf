@@ -10,12 +10,13 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(NONE)
 
 # NORDIC SDK APP START
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.c ${NRF_DIR}/samples/dap/src/cmsis_dap_usb.c)
 # NORDIC SDK APP END
 
 # Include application events and disk files
 zephyr_library_include_directories(
   src/events
+  ${NRF_DIR}/samples/dap/src
   )
 
 # Application sources
