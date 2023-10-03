@@ -37,6 +37,8 @@ manifest:
       url-base: https://github.com/ant-nrfconnect
     - name: babblesim
       url-base: https://github.com/BabbleSim
+    - name: bjda-thingy91
+      url-base: https://github.com/bjda-thingy91
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -58,8 +60,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: bjda-thingy91
       repo-path: sdk-zephyr
-      revision: 042fc99b1ecdc0acc14acd03ebddb8c133d87d3a
+      revision: thingy91x_on_manifest
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
