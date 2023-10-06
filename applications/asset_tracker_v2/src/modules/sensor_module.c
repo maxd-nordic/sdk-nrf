@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <zephyr/drivers/sensor.h>
 #include <app_event_manager.h>
+#include <math.h>
 
 #if defined(CONFIG_EXTERNAL_SENSORS)
 #include "ext_sensors.h"
@@ -253,6 +254,7 @@ static void battery_data_get(void)
 #if defined(CONFIG_ADP536X)
 	int err;
 	uint8_t percentage;
+	uint16_t millivolts;
 
 	err = adp536x_fg_soc(&percentage);
 	if (err) {
@@ -260,12 +262,23 @@ static void battery_data_get(void)
 		return;
 	}
 
+	err = adp536x_fg_volts(&millivolts);
+	if (err) {
+		LOG_ERR("Failed to get battery voltage: %d", err);
+		return;
+	}
 	sensor_module_event = new_sensor_module_event();
+
+	sensor_module_event->data.bat.has_current = false;
+	sensor_module_event->data.bat.has_temp = false;
+	sensor_module_event->data.bat.has_ttf = false;
+	sensor_module_event->data.bat.has_tte = false;
 
 	__ASSERT(sensor_module_event, "Not enough heap left to allocate event");
 
 	sensor_module_event->data.bat.timestamp = k_uptime_get();
 	sensor_module_event->data.bat.battery_level = percentage;
+	sensor_module_event->data.bat.mV = millivolts;
 	sensor_module_event->type = SENSOR_EVT_FUEL_GAUGE_READY;
 #else
 	sensor_module_event = new_sensor_module_event();

@@ -662,7 +662,7 @@ static int add_batch_data(cJSON *array, enum batch_data_type type, void *buf, si
 		case BATTERY: {
 			int err, len;
 			char batt_lvl[5];
-			struct cloud_data_battery *data = (struct cloud_data_battery *)buf;
+			struct cloud_data_fuel_gauge *data = (struct cloud_data_fuel_gauge *)buf;
 
 			len = snprintk(batt_lvl, sizeof(batt_lvl), "%d", data[i].bat);
 			if ((len < 0) || (len >= sizeof(batt_lvl))) {
@@ -960,7 +960,7 @@ int cloud_codec_encode_data(struct cloud_codec_data *output,
 			    struct cloud_data_modem_dynamic *modem_dyn_buf,
 			    struct cloud_data_ui *ui_buf,
 			    struct cloud_data_impact *impact_buf,
-			    struct cloud_data_battery *bat_buf,
+			    struct cloud_data_fuel_gauge *bat_buf,
 			    struct cloud_data_solar *sol_buf)
 {
 	/* Encoding of the latest buffer entries is not supported.
@@ -1096,7 +1096,7 @@ int cloud_codec_encode_batch_data(struct cloud_codec_data *output,
 				  struct cloud_data_modem_dynamic *modem_dyn_buf,
 				  struct cloud_data_ui *ui_buf,
 				  struct cloud_data_impact *impact_buf,
-				  struct cloud_data_battery *bat_buf,
+				  struct cloud_data_fuel_gauge *bat_buf,
 				  struct cloud_data_solar *sol_buf,
 				  size_t gnss_buf_count,
 				  size_t sensor_buf_count,

@@ -106,6 +106,17 @@ struct sensor_module_batt_lvl_data {
 	int64_t timestamp;
 	/** Battery level in percentage. */
 	int battery_level;
+
+	bool has_tte;
+	bool has_ttf;
+	bool has_temp;
+	bool has_current;
+	int tte;
+	int ttf;
+	int temp;
+	int mA;
+
+	int mV;
 };
 struct sensor_module_solar_data {
 	/** Uptime when the data was sampled. */
