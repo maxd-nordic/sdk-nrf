@@ -3,8 +3,12 @@
 # Copyright (c) 2019 Nordic Semiconductor ASA
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
-zephyr_library()
-if(CONFIG_BOARD_THINGY91X_NRF9161_NS)
+
+if (CONFIG_BOARD_THINGY91X_NRF9161_NS)
+
+	zephyr_library()
+	zephyr_library_sources(board_config.c)
+
 	# Use static partition layout to ensure the partition layout remains
 	# unchanged after DFU. This needs to be made globally available
 	# because it is used in other CMake files.
