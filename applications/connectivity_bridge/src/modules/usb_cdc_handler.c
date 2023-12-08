@@ -8,6 +8,8 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/usb/usb_device.h>
 
+#include <drivers/virtual_eeprom.h>
+
 #define MODULE usb_cdc
 #include "module_state_event.h"
 #include "peer_conn_event.h"
@@ -40,6 +42,11 @@ K_MEM_SLAB_DEFINE(cdc_rx_slab, USB_CDC_RX_BLOCK_SIZE, USB_CDC_RX_BLOCK_COUNT, US
 static uint32_t cdc_ready[CDC_DEVICE_COUNT];
 
 static uint8_t overflow_buf[64];
+
+#ifdef CONFIG_I2C_VIRTUAL_EEPROM_DRIVER
+const struct device *eeprom = DEVICE_DT_GET(DT_NODELABEL(virtual_eeprom));
+#define EEPROM_USB_STATUS 0x0
+#endif
 
 static void cdc_dtr_timer_handler(struct k_timer *timer)
 {
@@ -144,6 +151,7 @@ static void enable_rx_irq(int dev_idx)
 
 static void usbd_status(enum usb_dc_status_code cb_status, const uint8_t *param)
 {
+
 	switch (cb_status) {
 	case USB_DC_ERROR:
 		LOG_ERR("USB_DC_ERROR");
@@ -154,6 +162,9 @@ static void usbd_status(enum usb_dc_status_code cb_status, const uint8_t *param)
 	case USB_DC_CONNECTED:
 		LOG_DBG("USB_DC_CONNECTED");
 		module_set_state(MODULE_STATE_READY);
+#ifdef CONFIG_I2C_VIRTUAL_EEPROM_DRIVER
+		virtual_eeprom_exit_suspend(eeprom);
+#endif
 		break;
 	case USB_DC_CONFIGURED:
 		LOG_DBG("USB_DC_CONFIGURED");
@@ -161,6 +172,9 @@ static void usbd_status(enum usb_dc_status_code cb_status, const uint8_t *param)
 	case USB_DC_DISCONNECTED:
 		LOG_DBG("USB_DC_DISCONNECTED");
 		module_set_state(MODULE_STATE_STANDBY);
+#ifdef CONFIG_I2C_VIRTUAL_EEPROM_DRIVER
+		virtual_eeprom_enter_suspend(eeprom);
+#endif
 		break;
 	case USB_DC_SUSPEND:
 		LOG_DBG("USB_DC_SUSPEND");
@@ -171,6 +185,16 @@ static void usbd_status(enum usb_dc_status_code cb_status, const uint8_t *param)
 	default:
 		break;
 	}
+#ifdef CONFIG_I2C_VIRTUAL_EEPROM_DRIVER
+	if (!device_is_ready(eeprom)) {
+		LOG_ERR("eeprom device is not ready");
+		return;
+	}
+
+	uint16_t eeprom_data = cb_status;
+
+	virtual_eeprom_write(eeprom, EEPROM_USB_STATUS, (void*)&eeprom_data, sizeof(eeprom_data));
+#endif
 }
 
 static bool app_event_handler(const struct app_event_header *aeh)

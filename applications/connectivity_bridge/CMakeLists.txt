@@ -40,6 +40,7 @@ file(WRITE ${OUTPUT_README_HEADER_FILE} "const char* file_contents = \"${README_
 # Include application events and disk files
 zephyr_library_include_directories(
   src/events
+  ${NRF_DIR}/samples/dap/src
   ${CMAKE_BINARY_DIR}/generated/readme
   )
 
