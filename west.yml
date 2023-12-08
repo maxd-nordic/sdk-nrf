@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/BabbleSim
     - name: bosch
       url-base: https://github.com/boschsensortec
+    - name: bjda-thingy91
+      url-base: https://github.com/bjda-thingy91
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -60,8 +62,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: bjda-thingy91
       repo-path: sdk-zephyr
-      revision: 2364b332d085341d78e9618125256ae3a5cc71b0
+      revision: thingy91x_board
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -127,8 +130,9 @@ manifest:
           upstream-sha: 1225729e8d84075f03bf9fc51eee85d84dfb0091
           compare-by-default: true
     - name: mcuboot
+      remote: bjda-thingy91
       repo-path: sdk-mcuboot
-      revision: adab597a0eb0eb9c030a7b797748a49ca89988c2
+      revision: thingy91x_board
       path: bootloader/mcuboot
     - name: qcbor
       url: https://github.com/laurencelundblade/QCBOR.git
