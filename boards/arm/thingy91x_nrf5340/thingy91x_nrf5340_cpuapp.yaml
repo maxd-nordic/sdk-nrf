@@ -1,5 +1,5 @@
 identifier: thingy91x_nrf5340_cpuapp
-name: THINGY91X-NRF5340-application-MCU
+name: Thingy91X-NRF5340-application-MCU
 type: mcu
 arch: arm
 toolchain:

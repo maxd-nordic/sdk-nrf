@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Nordic Semiconductor ASA
+ * Copyright (c) 2023 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
@@ -8,7 +8,7 @@
 #include <dt-bindings/regulator/npm6001.h>
 
 / {
-	model = "Nordic Thingy91 nRF9161";
+	model = "Nordic Thingy:91 X nRF9161";
 	compatible = "nordic,thingy91x-nrf9161";
 
 	chosen {
@@ -178,15 +178,6 @@
 				regulator-boot-on;
 			};
 		};
-	};
-	eeprom: at24@7 {
-		compatible = "atmel,at24";
-		status = "okay";
-		size = <256>;
-		pagesize = <256>;
-		address-width = < 16 >;
-		timeout = < 100 >;
-		reg = <0x7>;
 	};
 
 	accel: accelerometer_lp: adxl367@1d {

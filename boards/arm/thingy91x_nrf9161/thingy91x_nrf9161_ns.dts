@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Nordic Semiconductor ASA
+ * Copyright (c) 2023 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
@@ -16,8 +16,7 @@
 	};
 };
 
-/* Disable Zephyr driver for UART1. The nrfx driver is used for interfacing with UART1
- * for sending modem traces.
+/* Disable Zephyr driver for UART1. This port is reserved for modem traces and T-FM logging.
  */
 &uart1 {
 	status = "disabled";
