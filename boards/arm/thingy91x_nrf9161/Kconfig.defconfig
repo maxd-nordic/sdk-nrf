@@ -1,6 +1,6 @@
-# Thingy:91 nRF9161 board configuration
+# Thingy:91 X nRF9161 board configuration
 #
-# Copyright (c) 2018 Nordic Semiconductor ASA
+# Copyright (c) 2023 Nordic Semiconductor ASA
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
@@ -66,7 +66,7 @@ config HW_STACK_PROTECTION
 	default ARCH_HAS_STACK_PROTECTION
 
 # check if we are building for any bootloader
-if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+if !IS_BOOTLOADER_IMG
 
 config SECURE_BOOT
 	default y
@@ -74,7 +74,7 @@ config SECURE_BOOT
 config BOOTLOADER_MCUBOOT
 	default y
 
-# Please do not use these keys for own custom boards!
+# Do not use these keys for own custom boards!
 # These are meant as examples and therefore public.
 # The documentation of the nRF Secure Immutable Bootloader and MCUBoot detail on how
 # to set up your own keys.
@@ -120,5 +120,5 @@ config REGULATOR_NPM6001_INIT_PRIORITY
 config GPIO_HOGS_INIT_PRIORITY
 	default 81
 
-endif # (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+endif # !IS_BOOTLOADER_IMG
 endif # BOARD_THINGY91X_NRF9161 || BOARD_THINGY91X_NRF9161_NS

@@ -1,5 +1,5 @@
 identifier: thingy91x_nrf9161
-name: Thingy91-NRF9161
+name: Thingy91X-NRF9161
 type: mcu
 arch: arm
 toolchain:

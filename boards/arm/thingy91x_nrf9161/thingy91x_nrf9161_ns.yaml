@@ -1,5 +1,5 @@
 identifier: thingy91x_nrf9161_ns
-name: THINGY91-nRF9161-Non-Secure
+name: Thingy91X-nRF9161-Non-Secure
 type: mcu
 arch: arm
 toolchain:
