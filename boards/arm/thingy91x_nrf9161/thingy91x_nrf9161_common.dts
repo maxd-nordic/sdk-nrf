@@ -55,11 +55,8 @@
 			pwms = <&pwm0 2 PWM_MSEC(8) PWM_POLARITY_NORMAL>;
 		};
 	};
-
-	nrf52840_reset: gpio-reset {
-		compatible = "nordic,thingy91-nrf52840-reset";
-		status = "okay";
-		gpios = <&gpio0 20 GPIO_ACTIVE_LOW>;
+	zephyr,user {
+		nrf5340-reset-gpios = <&gpio0 20 GPIO_ACTIVE_LOW>;
 	};
 
 	aliases {
