@@ -1,6 +1,6 @@
 CONFIG_SOC_SERIES_NRF91X=y
-CONFIG_SOC_NRF9161_LACA=y
-CONFIG_BOARD_THINGY91X_NRF9161_NS=y
+CONFIG_SOC_NRF9151_LACA=y
+CONFIG_BOARD_THINGY91X_NRF9151_NS=y
 
 # Enable MPU
 CONFIG_ARM_MPU=y
@@ -39,5 +39,5 @@ CONFIG_SPI_NOR_FLASH_LAYOUT_PAGE_SIZE=4096
 # Enable sensor (for nPM1300 charger)
 CONFIG_SENSOR=y
 
-# Disable entropy driver, as it's not yet implemented for nRF9161
+# Disable entropy driver, as it's not yet implemented for nRF9151
 CONFIG_ENTROPY_NRF5_RNG=n
