@@ -3,13 +3,13 @@
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
-#include "thingy91x_nrf9161_common-pinctrl.dtsi"
+#include "thingy91x_nrf9151_common-pinctrl.dtsi"
 #include <dt-bindings/regulator/npm1300.h>
 #include <dt-bindings/regulator/npm6001.h>
 
 / {
-	model = "Nordic Thingy:91 X nRF9161";
-	compatible = "nordic,thingy91x-nrf9161";
+	model = "Nordic Thingy:91 X nRF9151";
+	compatible = "nordic,thingy91x-nrf9151";
 
 	chosen {
 		zephyr,console = &uart0;
