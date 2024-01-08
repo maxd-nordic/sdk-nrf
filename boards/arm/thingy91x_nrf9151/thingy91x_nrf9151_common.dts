@@ -138,6 +138,9 @@
 			ldsw_nPM60_en: LDO1 {
 				regulator-allowed-modes = <NPM1300_LDSW_MODE_LDSW>;
 				regulator-boot-on;
+				/* Delay after turning on to allow nPM6001 to start up */
+				startup-delay-us = <2000>;
+				off-on-delay-us = <2000>;
 			};
 			/* LDO2 is used as a load switch for sensor power supply */
 			ldsw_sensors: LDO2 {
