@@ -64,7 +64,7 @@ manifest:
     - name: zephyr
       remote: bjda-thingy91
       repo-path: sdk-zephyr
-      revision: thingy91x_board
+      revision: thingy91x_rebase_dec12
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -132,7 +132,7 @@ manifest:
     - name: mcuboot
       remote: bjda-thingy91
       repo-path: sdk-mcuboot
-      revision: thingy91x_board
+      revision: thingy91x_rebase_dec12
       path: bootloader/mcuboot
     - name: qcbor
       url: https://github.com/laurencelundblade/QCBOR.git
