@@ -12,4 +12,11 @@ config BOARD_THINGY91X_NRF9151
 config BOARD_THINGY91X_NRF9151_NS
 	bool "nRF9151 THINGY91X non-secure"
 
+config THINGY91X_STATIC_PARTITIONS_FACTORY
+	bool "Factory Thingy:91 X partition layout"
+	help
+	   The default Thingy:91 X partition layout used in the factory firmware. This ensures
+	   firmware updates are compatible with Thingy:91 when flashing firmware over USB or over
+	   the air.
+
 endif # SOC_NRF9151_LACA

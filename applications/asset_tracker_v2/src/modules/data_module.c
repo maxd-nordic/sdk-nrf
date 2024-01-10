@@ -357,7 +357,7 @@ static int config_settings_handler(const char *key, size_t len,
 		if (err < 0) {
 			LOG_ERR("Failed to load configuration, error: %d", err);
 		} else {
-			LOG_DBG("Device configuration loaded from flash");
+			LOG_ERR("Device configuration loaded from flash");
 			err = 0;
 		}
 	}
@@ -430,6 +430,7 @@ static int setup(void)
 		LOG_ERR("settings_load_subtree, error: %d", err);
 		return err;
 	}
+	LOG_ERR("foo");
 
 	/* Wait up to 1 seconds for the settings API to load the device configuration stored
 	 * to flash, if any.
