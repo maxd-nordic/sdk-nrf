@@ -11,6 +11,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/settings/settings.h>
 #include <modem/nrf_modem_lib.h>
+#include <SEGGER_RTT.h>
+#include <SEGGER_RTT_Conf.h>
 
 const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
@@ -36,6 +38,51 @@ static const struct {
 	{GPIO_INPUT, "Z"},
 };
 
+void printf_segger(const char *fmt, ...)
+{
+	uint8_t buf[1024] = {0};
+	int rc = 0;
+	va_list ap;
+
+	va_start(ap, fmt);
+
+	rc = snprintf(buf, ARRAY_SIZE(buf), fmt, ap);
+	if (rc > 0) {
+		SEGGER_RTT_WriteSkipNoLock(0, buf, rc);
+	}
+
+	va_end(ap);
+}
+
+#define READ_TIMEOUT_MS 1000
+
+size_t readline_segger(uint8_t *buf, size_t buf_len)
+{
+	int rc = 0;
+	int i = 0;
+
+	int64_t reftime = k_uptime_get();
+
+	while (i < buf_len) {
+		rc = SEGGER_RTT_ReadNoLock(0, &buf[i], 1);
+		if (rc == 1) {
+			if (buf[i] == '\n') {
+				buf[i] = 0; // terminate string
+				printf_segger("%s\n", buf);
+				return i;
+			}
+			reftime = k_uptime_get();
+			i += 1;
+		} else {
+			// busy-wait with timeout
+			if (k_uptime_delta(reftime) > READ_TIMEOUT_MS) {
+				return 0;
+			}
+		}
+	}
+	return 0;
+}
+
 void process_command(const char *line) {
     char command;
     int port, pin;
@@ -47,10 +94,10 @@ void process_command(const char *line) {
         } else if (command == 'W') {
             handle_write_command(port, pin, state);
         } else {
-            printf("ERROR1\n");
+            printf_segger("ERROR1\n");
         }
     } else {
-        printf("ERROR2\n");
+        printf_segger("ERROR2\n");
     }
 }
 
@@ -67,9 +114,9 @@ void handle_read_command(int port, int pin) {
 	int state = gpio_pin_get(gpio0, pin);
 
 	if (state < 0) {
-        	printf("ERROR3\n");
+        	printf_segger("ERROR3\n");
 	} else {
-		printk("OK,%d,%d,%d\n", port, pin, state);
+		printf_segger("OK,%d,%d,%d\n", port, pin, state);
 	}
 }
 
@@ -91,27 +138,27 @@ void handle_write_command(int port, int pin, char *desired_state) {
 	} else if (strcmp(desired_state, "Z") == 0) {
 		flags = GPIO_INPUT;
 	} else {
-		printk("ERROR4");
+		printf_segger("ERROR4");
 		return;
 	}
 	rc = gpio_pin_configure(gpio0, pin, flags);
 
 	if (rc) {
-        	printf("ERROR5\n");
+        	printf_segger("ERROR5\n");
 		return;
 	}
 
-	rc = snprintk(settings_name_buf, ARRAY_SIZE(settings_name_buf),
+	rc = snprintf(settings_name_buf, ARRAY_SIZE(settings_name_buf),
 			"%s/%d/%d", PINSTATE_SETTINGS_BASE_KEY, port, pin);
 
-	printk("Saving to [%s]\n", settings_name_buf);
+	printf_segger("Saving to [%s]\n", settings_name_buf);
 	settings_save_one(settings_name_buf, &flags, sizeof(flags));
 
 	state = gpio_pin_get(gpio0, pin);
 	if (state < 0) {
-		printf("ERROR6\n");
+		printf_segger("ERROR6\n");
 	} else {
-		printk("OK,%d,%d,%d\n", port, pin, state);
+		printf_segger("OK,%d,%d,%d\n", port, pin, state);
 	}
 
 
@@ -126,24 +173,24 @@ static int zephyr_settings_backend_load_key_cb(const char *key, size_t len,
 
 	/* key validation */
 	if (!key) {
-		printk("ERROR: settings entry has no key\n");
+		printf_segger("ERROR: settings entry has no key\n");
 		return -EINVAL;
 	}
 
 	int port, pin, flags;
 
 	if (sscanf(key, "%d/%d",&port, &pin) != 2) {
-		printk("ERROR: settings entry has invalid key\n");
+		printf_segger("ERROR: settings entry has invalid key\n");
 		return -EINVAL;
 	}
 
 	if(read_cb(cb_arg, &flags, sizeof(flags)) != sizeof(flags)) {
-		printk("ERROR: settings entry has invalid value\n");
+		printf_segger("ERROR: settings entry has invalid value\n");
 		return -EINVAL;
 	}
 
 	if(gpio_pin_configure(gpio0, pin, flags)) {
-		printk("ERROR: couldn't configure pin\n");
+		printf_segger("ERROR: couldn't configure pin\n");
 		return -EIO;
 	}
 
@@ -153,30 +200,30 @@ static int zephyr_settings_backend_load_key_cb(const char *key, size_t len,
 int main(void)
 {
 	int rc;
+	uint8_t buf[1024];
 
 	rc = nrf_modem_lib_init();
 	if (rc) {
-		printk("Error initilizing modem lib\n");
+		printf_segger("Error initilizing modem lib\n");
 	}
 
 	rc = settings_subsys_init();
 	if (rc) {
-		printk("Error initilizing settings subsystem\n");
+		printf_segger("Error initilizing settings subsystem\n");
 	}
 
 	rc = settings_load_subtree_direct(PINSTATE_SETTINGS_BASE_KEY,
 					  zephyr_settings_backend_load_key_cb, NULL);
 
 
-	console_getline_init();
 
-
-	printk("Enter a line\n");
+	printf_segger("Enter a line\n");
 
 	while (1) {
-		char *s = console_getline();
-
-		process_command(s);
+		rc = readline_segger(buf, ARRAY_SIZE(buf));
+		if (rc) {
+			process_command(buf);
+		}
 	}
 	return 0;
 }
