@@ -186,7 +186,6 @@
 	accel: accelerometer_lp: adxl367@1d {
 		status = "disabled";
 		compatible = "adi,adxl367";
-		status = "okay";
 		odr = <3>;
 		reg = <0x1d>;
 		int1-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
@@ -195,7 +194,6 @@
 	magnetometer: bmm150@10 {
 		status = "disabled";
 		compatible = "bosch,bmm150";
-		status = "okay";
 		reg = <0x10>;
 		//irq-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 	};
