@@ -103,6 +103,7 @@
 	pinctrl-names = "default", "sleep";
 
 	bme680: bme680@76 {
+		status = "disabled";
 		compatible = "bosch,bme680";
 		reg = <0x76>;
 	};
@@ -122,7 +123,7 @@
 			ldsw_rf_fe_sr_en: GPIO1 {
 				gpio-hog;
 				gpios = <1 GPIO_ACTIVE_HIGH>;
-				output-high;
+				output-low;
 			};
 		};
 
@@ -137,7 +138,6 @@
 			/* LDO1 is used as a load switch pulling the nPM60 enable line to VSYS */
 			ldsw_nPM60_en: LDO1 {
 				regulator-allowed-modes = <NPM1300_LDSW_MODE_LDSW>;
-				regulator-boot-on;
 			};
 			/* LDO2 is used as a load switch for sensor power supply */
 			ldsw_sensors: LDO2 {
@@ -164,12 +164,15 @@
 	};
 
 	pmic_wifi: npm6001@70 {
+		/* don't forget to set ldsw_nPM60_en:regulator-boot-on and ldsw_rf_fe_sr_en when enabling wifi */
+		status = "disabled";
+
 		compatible = "nordic,npm6001";
 		label = "nPM6001";
 		reg = <0x70>;
 
 		regulators {
-			compatible = "nordic,npm6001-regulator";
+		compatible = "nordic,npm6001-regulator";
 			/* Dedicated 3.3 V regulator for nRF70 */
 			reg_wifi: BUCK3 {
 				regulator-min-microvolt = <3300000>;
@@ -181,14 +184,16 @@
 	};
 
 	accel: accelerometer_lp: adxl367@1d {
+		status = "disabled";
 		compatible = "adi,adxl367";
 		status = "okay";
 		odr = <3>;
 		reg = <0x1d>;
-		//irq-gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
+		int1-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
 	};
 
 	magnetometer: bmm150@10 {
+		status = "disabled";
 		compatible = "bosch,bmm150";
 		status = "okay";
 		reg = <0x10>;
@@ -223,7 +228,7 @@
 
 	nrf700x: nrf7000@1 {
 		compatible = "nordic,nrf700x-spi";
-		status = "okay";
+		status = "disabled";
 		reg = <1>;
 		spi-max-frequency = <DT_FREQ_M(8)>;
 
@@ -234,7 +239,7 @@
 
 	accelerometer_hp: bmi270@2 {
 		compatible = "bosch,bmi270";
-		status = "okay";
+		status = "disabled";
 		reg = <2>;
 		spi-max-frequency = <DT_FREQ_M(10)>;
 		//irq-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
