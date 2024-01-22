@@ -137,10 +137,12 @@
 			};
 			/* LDO1 is used as a load switch pulling the nPM60 enable line to VSYS */
 			ldsw_nPM60_en: LDO1 {
+				regulator-initial-mode = <NPM1300_LDSW_MODE_LDSW>;
 				regulator-allowed-modes = <NPM1300_LDSW_MODE_LDSW>;
 			};
 			/* LDO2 is used as a load switch for sensor power supply */
 			ldsw_sensors: LDO2 {
+				regulator-initial-mode = <NPM1300_LDSW_MODE_LDSW>;
 				regulator-allowed-modes = <NPM1300_LDSW_MODE_LDSW>;
 				regulator-boot-on;
 			};
