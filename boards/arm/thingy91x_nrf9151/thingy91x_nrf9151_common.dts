@@ -170,7 +170,6 @@
 		status = "disabled";
 
 		compatible = "nordic,npm6001";
-		label = "nPM6001";
 		reg = <0x70>;
 
 		regulators {
