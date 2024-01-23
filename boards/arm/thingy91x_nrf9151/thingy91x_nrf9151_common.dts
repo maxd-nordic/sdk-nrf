@@ -114,7 +114,7 @@
 		pmic-int-pin = <3>;
 		reg = <0x6b>;
 
-		gpios_pmic: gpios {
+		gpios_pmic: npm1300_gpios {
 			compatible = "nordic,npm1300-gpio";
 			gpio-controller;
 			#gpio-cells = <2>;
