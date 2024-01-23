@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Nordic Semiconductor ASA.
+# Copyright (c) 2024 Nordic Semiconductor ASA.
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
 if (CONFIG_BOARD_THINGY91X_NRF5340_CPUAPP OR CONFIG_BOARD_THINGY91X_NRF5340_CPUAPP_NS)

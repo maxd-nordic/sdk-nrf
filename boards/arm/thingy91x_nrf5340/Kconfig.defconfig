@@ -1,6 +1,6 @@
 # nRF5340 DK nRF5340 board configuration
 
-# Copyright (c) 2023 Nordic Semiconductor ASA
+# Copyright (c) 2024 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
 if  BOARD_THINGY91X_NRF5340_CPUAPP || BOARD_THINGY91X_NRF5340_CPUAPP_NS

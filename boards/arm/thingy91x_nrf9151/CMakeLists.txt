@@ -1,6 +1,6 @@
 # Kconfig - nRF91 Thingy:91 X board configuration
 #
-# Copyright (c) 2023 Nordic Semiconductor ASA
+# Copyright (c) 2024 Nordic Semiconductor ASA
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 zephyr_library()
