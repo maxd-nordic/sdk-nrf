@@ -28,6 +28,9 @@ LOG_MODULE_REGISTER(simple_config, CONFIG_SIMPLE_CONFIG_LOG_LEVEL);
 
 static simple_config_callback_t callback;
 
+/* cJSON object holding all the pending settings entries. Lives forever. */
+static cJSON_Object *queued_configs;
+
 static void json_print_obj(const char *prefix, const cJSON *obj)
 {
 	char *string = cJSON_Print(obj);
@@ -47,7 +50,9 @@ void simple_config_set_callback(simple_config_callback_t cb) {
 	callback = cb;
 }
 
-int simple_config_update()
+// TODO: apply pending config changes, even if we got no valid shadow delta
+
+int simple_config_update(void)
 {
 	int err = 0;
 	cJSON *root_obj = NULL;
@@ -126,7 +131,51 @@ exit:
 	return err;
 }
 
+void simple_config_init_queued_configs(void) {
+	if (queued_configs == NULL) {
+		LOG_DBG("initilizing [queued_configs]");
+		queued_configs = cJSON_CreateObject();
+	}
+	if (queued_configs == NULL) {
+		LOG_ERR("[queued_configs] couldn't be created!");
+	}
+}
+
 int simple_config_set(const char *key, const struct simple_config_val *val)
 {
+	cJSON *child = NULL;
 
+	if (key == NULL || key[0] == '\0'
+		|| (
+			val->type != SIMPLE_CONFIG_VAL_STRING
+			&& val->type != SIMPLE_CONFIG_VAL_BOOL
+			&& val->type != SIMPLE_CONFIG_VAL_DOUBLE
+		)
+	) {
+		return -EINVAL;
+	}
+
+	simple_config_init_queued_configs();
+
+	/* delete config item if it already existed */
+	cJSON_DeleteItemFromObject(queued_configs, key);
+
+	if (val->type == SIMPLE_CONFIG_VAL_STRING) {
+		child = cJSON_AddStringToObject(queued_configs, key, val->val._str);
+	} else if (val->type == SIMPLE_CONFIG_VAL_BOOL) {
+		if (val->val._bool) {
+			child  = cJSON_AddTrueToObject(queued_configs, key);
+		} else {
+			child  = cJSON_AddFalseToObject(queued_configs, key);
+		}
+	} else if (val->type == SIMPLE_CONFIG_VAL_DOUBLE) {
+		child = cJSON_AddNumberToObject(queued_configs, key, val->val._double);
+	}
+
+	if (child == NULL) {
+		LOG_ERR("couldn't add config item for key [%s]", key);
+		return -ENOMEM;
+	}
+
+	return 0;
 }
