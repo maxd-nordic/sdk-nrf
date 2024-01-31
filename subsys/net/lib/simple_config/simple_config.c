@@ -50,14 +50,18 @@ void simple_config_set_callback(simple_config_callback_t cb) {
 	callback = cb;
 }
 
-// TODO: apply pending config changes, even if we got no valid shadow delta
-
-int simple_config_update(void)
+int simple_config_handle_incoming_settings(void)
 {
 	int err = 0;
 	cJSON *root_obj = NULL;
 	cJSON *config_obj = NULL;
+	cJSON* child = NULL;
 	char buf[COAP_SHADOW_MAX_SIZE] = {0};
+
+	if (callback == NULL) {
+		LOG_ERR("callback is not set up, settings cannot be applied!");
+		return -EFAULT;
+	}
 
 	LOG_INF("Checking for shadow delta...");
 	// TODO: do we want to initially request with delta=false?
@@ -69,76 +73,133 @@ int simple_config_update(void)
 		LOG_ERR("Failed to request shadow delta: %d", err);
 		return err;
 	}
-
 	LOG_DBG("Shadow delta: len:%zd, %s", in_data.len, buf);
 
+	/* try to parse the json string into an object */
 	root_obj = cJSON_Parse(buf);
 	if (root_obj == NULL) {
 		LOG_ERR("Shadow delta could not be parsed");
+		return -EINVAL;
 	}
 	if (!cJSON_IsObject(root_obj)) {
 		LOG_ERR("Shadow delta is not an object");
-		err = -ENOENT;
-		goto exit;
+		return -ENOENT;
 	}
 
+	/* try to get the 'config' entry of the json object */
 	config_obj = cJSON_GetObjectItem(root_obj, "config");
-	if (config_obj) {
-		cJSON* child = NULL;
-		cJSON_ArrayForEach(child, config_obj) {
-			LOG_DGB("Name: %s, Value: %s\n",
-				child->string,
-				child->valuestring);
-			struct simple_config_val val;
+	if (!config_obj) {
+		cJSON_Delete(root_obj);
+		return -ENOENT;
+	}
 
-			if (child->type == cJSON_String) {
-				val.type = SIMPLE_CONFIG_VAL_STRING;
-				val.val._str = child->valuestring;
-			} else if (child->type == cJSON_Number) {
-				val.type = SIMPLE_CONFIG_VAL_DOUBLE;
-				val.val._double = child->valuedouble;
-			} else if (child->type == cJSON_True) {
-				val.type = SIMPLE_CONFIG_VAL_BOOL;
-				val.val._bool = true;
-			} else if (child->type == cJSON_False) {
-				val.type = SIMPLE_CONFIG_VAL_BOOL;
-				val.val._bool = false;
-			} else {
-				LOG_ERR("config entry %s has unsupported type!", child->string);
-				/* reject entry */
-				cJSON_DeleteItemFromObject(config_obj, child->string);
-			}
+	/* iterate over settings entries */
+	cJSON_ArrayForEach(child, config_obj) {
+		LOG_DGB("Name: %s, Value: %s\n",
+			child->string,
+			child->valuestring);
+		struct simple_config_val val;
 
+		/* match cJSON entries to settings struct */
+		if (child->type == cJSON_String) {
+			val.type = SIMPLE_CONFIG_VAL_STRING;
+			val.val._str = child->valuestring;
+		} else if (child->type == cJSON_Number) {
+			val.type = SIMPLE_CONFIG_VAL_DOUBLE;
+			val.val._double = child->valuedouble;
+		} else if (child->type == cJSON_True) {
+			val.type = SIMPLE_CONFIG_VAL_BOOL;
+			val.val._bool = true;
+		} else if (child->type == cJSON_False) {
+			val.type = SIMPLE_CONFIG_VAL_BOOL;
+			val.val._bool = false;
+		} else {
+			LOG_ERR("config entry %s has unsupported type!", child->string);
+			/* reject entry */
+			continue;
+		}
 
-			if (callback(child->string, val)) {
-				/* callback returned nonzero value, reject entry */
-				cJSON_DeleteItemFromObject(config_obj, child->string);
-			}
-		};
+		/* inform app about settings change */
+		if (!callback(child->string, val)) {
+			/* on success, apply this to the queue */
+			simple_config_set(child->string, val);
+		}
+	};
+
+	cJSON_Delete(root_obj);
+	return 0;
+}
+
+cJSON *simple_config_construct_settings_obj(void)
+{
+	cJSON *root_obj = cJSON_CreateObject();
+
+	// TODO: is this necessary?
+	if (simple_config_init_queued_configs()) {
+		cJSON_Delete(root_obj);
+		return NULL;
+	}
+
+	if (!root_obj) {
+		LOG_ERR("couldn't create root object!");
+		return NULL;
+	}
+
+	if (cJSON_AddItemToObject(root_obj, "config", queued_configs)) {
+		queued_configs = cJSON_CreateObject();
+		if (!queued_configs) {
+			LOG_ERR("couldn't create new queued_configs object!");
+		}
+	} else {
+		LOG_ERR("couldn't attach queued_configs");
+		cJSON_Delete(root_obj);
+		return NULL;
+	}
+
+	return root_obj;
+}
+
+int simple_config_update(void)
+{
+	int err = 0;
+	cJSON *root_obj = NULL;
+
+	err = simple_config_handle_incoming_settings();
+	if (err) {
+		LOG_INF("handling incoming settings failed: %d", err);
+	}
+
+	root_obj = simple_config_construct_settings_obj();
+	if (!root_obj) {
+		LOG_INF("coudn't construct settings object: %d", err);
+		return -EIO;
 	}
 
 	if (cJSON_PrintPreallocated(root_obj, buf, sizeof(buf), false)) {
-		nrf_cloud_coap_shadow_state_update(buf);
+		err = nrf_cloud_coap_shadow_state_update(buf);
+		if (err) {
+			LOG_ERR("nrf_cloud_coap_shadow_state_update failed: %d", err);
+		}
 	} else {
-		LOG_ERR("Rendering delta response failed!");
+		LOG_ERR("rendering delta response failed!");
+		err = -EIO;
 	}
 
+	cJSON_Delete(root_obj);
 
-exit:
-	if (root_obj) {
-		cJSON_Delete(root_obj);
-	}
 	return err;
 }
 
-void simple_config_init_queued_configs(void) {
+int simple_config_init_queued_configs(void) {
 	if (queued_configs == NULL) {
 		LOG_DBG("initilizing [queued_configs]");
 		queued_configs = cJSON_CreateObject();
 	}
 	if (queued_configs == NULL) {
 		LOG_ERR("[queued_configs] couldn't be created!");
+		return -ENOMEM;
 	}
+	return 0;
 }
 
 int simple_config_set(const char *key, const struct simple_config_val *val)
@@ -155,7 +216,9 @@ int simple_config_set(const char *key, const struct simple_config_val *val)
 		return -EINVAL;
 	}
 
-	simple_config_init_queued_configs();
+	if (simple_config_init_queued_configs()) {
+		return -ENOMEM;
+	}
 
 	/* delete config item if it already existed */
 	cJSON_DeleteItemFromObject(queued_configs, key);
