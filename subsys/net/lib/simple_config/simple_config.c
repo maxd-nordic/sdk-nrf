@@ -28,22 +28,8 @@ LOG_MODULE_REGISTER(simple_config, CONFIG_SIMPLE_CONFIG_LOG_LEVEL);
 
 static simple_config_callback_t callback;
 
-/* cJSON object holding all the pending settings entries. Lives forever. */
+/* cJSON object holding all the pending settings entries. Lives forever. These settings are already applied and should be reported to cloud. */
 static cJSON_Object *queued_configs;
-
-static void json_print_obj(const char *prefix, const cJSON *obj)
-{
-	char *string = cJSON_Print(obj);
-
-	if (string == NULL) {
-		LOG_ERR("Failed to print object content");
-		return;
-	}
-
-	printk("%s%s\n", prefix, string);
-
-	cJSON_FreeString(string);
-}
 
 typedef int (*simple_config_callback_t)(const char *key, const struct simple_config_val *val);
 void simple_config_set_callback(simple_config_callback_t cb) {
@@ -90,6 +76,11 @@ int simple_config_handle_incoming_settings(void)
 	config_obj = cJSON_GetObjectItem(root_obj, "config");
 	if (!config_obj) {
 		cJSON_Delete(root_obj);
+		return -ENOENT;
+	}
+	if (!cJSON_IsObject(config_obj)) {
+		cJSON_Delete(root_obj);
+		LOG_ERR("config is not an object");
 		return -ENOENT;
 	}
 
@@ -242,3 +233,4 @@ int simple_config_set(const char *key, const struct simple_config_val *val)
 
 	return 0;
 }
+// "{ "config": { "foo": 2, "bar": 4 } }"
