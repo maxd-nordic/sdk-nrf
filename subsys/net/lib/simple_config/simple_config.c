@@ -15,13 +15,11 @@
 
 LOG_MODULE_REGISTER(simple_config, CONFIG_SIMPLE_CONFIG_LOG_LEVEL);
 
-#define COAP_SHADOW_MAX_SIZE 512
 
 /* cJSON object holding all the pending settings entries. Lives forever. These settings are already
  * applied and should be reported to cloud. */
 static cJSON *queued_configs;
 
-typedef int (*simple_config_callback_t)(const char *key, const struct simple_config_val *val);
 static simple_config_callback_t callback;
 void simple_config_set_callback(simple_config_callback_t cb)
 {
@@ -189,6 +187,7 @@ void simple_config_clear_queued_configs(void)
 {
 	if (queued_configs) {
 		cJSON_Delete(queued_configs);
+		queued_configs = NULL;
 	}
 }
 
