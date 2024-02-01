@@ -11,6 +11,9 @@
 #include <zephyr/logging/log.h>
 #include <stdio.h>
 
+
+LOG_MODULE_REGISTER(simple_config, CONFIG_SIMPLE_CONFIG_LOG_LEVEL);
+
 struct simple_config_val {
 	enum {
 		SIMPLE_CONFIG_VAL_STRING,
@@ -24,25 +27,29 @@ struct simple_config_val {
 	} val;
 };
 
-LOG_MODULE_REGISTER(simple_config, CONFIG_SIMPLE_CONFIG_LOG_LEVEL);
-
-static simple_config_callback_t callback;
+#define COAP_SHADOW_MAX_SIZE 512
 
 /* cJSON object holding all the pending settings entries. Lives forever. These settings are already applied and should be reported to cloud. */
-static cJSON_Object *queued_configs;
+static cJSON *queued_configs;
 
 typedef int (*simple_config_callback_t)(const char *key, const struct simple_config_val *val);
+static simple_config_callback_t callback;
 void simple_config_set_callback(simple_config_callback_t cb) {
 	callback = cb;
 }
 
-int simple_config_handle_incoming_settings(void)
+int simple_config_handle_incoming_settings(char *buf, size_t buf_len);
+cJSON *simple_config_construct_settings_obj(void);
+int simple_config_update(void);
+int simple_config_init_queued_configs(void);
+int simple_config_set(const char *key, const struct simple_config_val *val);
+
+int simple_config_handle_incoming_settings(char *buf, size_t buf_len)
 {
 	int err = 0;
 	cJSON *root_obj = NULL;
 	cJSON *config_obj = NULL;
 	cJSON* child = NULL;
-	char buf[COAP_SHADOW_MAX_SIZE] = {0};
 
 	if (callback == NULL) {
 		LOG_ERR("callback is not set up, settings cannot be applied!");
@@ -59,7 +66,7 @@ int simple_config_handle_incoming_settings(void)
 		LOG_ERR("Failed to request shadow delta: %d", err);
 		return err;
 	}
-	LOG_DBG("Shadow delta: len:%zd, %s", in_data.len, buf);
+	LOG_DBG("Shadow delta: len:%zd, %s", strnlen(buf, buf_len), buf);
 
 	/* try to parse the json string into an object */
 	root_obj = cJSON_Parse(buf);
@@ -86,7 +93,7 @@ int simple_config_handle_incoming_settings(void)
 
 	/* iterate over settings entries */
 	cJSON_ArrayForEach(child, config_obj) {
-		LOG_DGB("Name: %s, Value: %s\n",
+		LOG_DBG("Name: %s, Value: %s\n",
 			child->string,
 			child->valuestring);
 		struct simple_config_val val;
@@ -111,9 +118,9 @@ int simple_config_handle_incoming_settings(void)
 		}
 
 		/* inform app about settings change */
-		if (!callback(child->string, val)) {
+		if (!callback(child->string, &val)) {
 			/* on success, apply this to the queue */
-			simple_config_set(child->string, val);
+			simple_config_set(child->string, &val);
 		}
 	};
 
@@ -154,8 +161,9 @@ int simple_config_update(void)
 {
 	int err = 0;
 	cJSON *root_obj = NULL;
+	char buf[COAP_SHADOW_MAX_SIZE] = {0};
 
-	err = simple_config_handle_incoming_settings();
+	err = simple_config_handle_incoming_settings(buf, sizeof(buf));
 	if (err) {
 		LOG_INF("handling incoming settings failed: %d", err);
 	}

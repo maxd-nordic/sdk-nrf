@@ -18,10 +18,12 @@ target_sources(app
   PRIVATE
   ${ZEPHYR_NRF_MODULE_DIR}/subsys/net/lib/simple_config/simple_config.c
 )
-
+zephyr_include_directories(${ZEPHYR_NRFXLIB_MODULE_DIR}/nrf_modem/include/)
+zephyr_include_directories(${ZEPHYR_NRF_MODULE_DIR}/../modules/lib/cjson/)
 zephyr_include_directories(${ZEPHYR_NRF_MODULE_DIR}/include/net/)
 zephyr_include_directories(${ZEPHYR_BASE}/subsys/testsuite/include)
 zephyr_include_directories(${ZEPHYR_NRF_MODULE_DIR}/subsys/net/lib/simple_config/)
+zephyr_include_directories(${ZEPHYR_NRF_MODULE_DIR}/subsys/net/lib/nrf_cloud/include)
 
 
 target_compile_options(app
