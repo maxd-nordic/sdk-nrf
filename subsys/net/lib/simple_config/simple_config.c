@@ -11,45 +11,29 @@
 #include <zephyr/logging/log.h>
 #include <stdio.h>
 
+#include "simple_config_internal.h"
 
 LOG_MODULE_REGISTER(simple_config, CONFIG_SIMPLE_CONFIG_LOG_LEVEL);
 
-struct simple_config_val {
-	enum {
-		SIMPLE_CONFIG_VAL_STRING,
-		SIMPLE_CONFIG_VAL_BOOL,
-		SIMPLE_CONFIG_VAL_DOUBLE,
-	} type;
-	union {
-		const char *_str;
-		bool _bool;
-		double _double;
-	} val;
-};
-
 #define COAP_SHADOW_MAX_SIZE 512
 
-/* cJSON object holding all the pending settings entries. Lives forever. These settings are already applied and should be reported to cloud. */
+/* cJSON object holding all the pending settings entries. Lives forever. These settings are already
+ * applied and should be reported to cloud. */
 static cJSON *queued_configs;
 
 typedef int (*simple_config_callback_t)(const char *key, const struct simple_config_val *val);
 static simple_config_callback_t callback;
-void simple_config_set_callback(simple_config_callback_t cb) {
+void simple_config_set_callback(simple_config_callback_t cb)
+{
 	callback = cb;
 }
-
-int simple_config_handle_incoming_settings(char *buf, size_t buf_len);
-cJSON *simple_config_construct_settings_obj(void);
-int simple_config_update(void);
-int simple_config_init_queued_configs(void);
-int simple_config_set(const char *key, const struct simple_config_val *val);
 
 int simple_config_handle_incoming_settings(char *buf, size_t buf_len)
 {
 	int err = 0;
 	cJSON *root_obj = NULL;
 	cJSON *config_obj = NULL;
-	cJSON* child = NULL;
+	cJSON *child = NULL;
 
 	if (callback == NULL) {
 		LOG_ERR("callback is not set up, settings cannot be applied!");
@@ -92,10 +76,9 @@ int simple_config_handle_incoming_settings(char *buf, size_t buf_len)
 	}
 
 	/* iterate over settings entries */
-	cJSON_ArrayForEach(child, config_obj) {
-		LOG_DBG("Name: %s, Value: %s\n",
-			child->string,
-			child->valuestring);
+	cJSON_ArrayForEach(child, config_obj)
+	{
+		LOG_DBG("Name: %s, Value: %s\n", child->string, child->valuestring);
 		struct simple_config_val val;
 
 		/* match cJSON entries to settings struct */
@@ -189,7 +172,8 @@ int simple_config_update(void)
 	return err;
 }
 
-int simple_config_init_queued_configs(void) {
+int simple_config_init_queued_configs(void)
+{
 	if (queued_configs == NULL) {
 		LOG_DBG("initilizing [queued_configs]");
 		queued_configs = cJSON_CreateObject();
@@ -201,17 +185,20 @@ int simple_config_init_queued_configs(void) {
 	return 0;
 }
 
+void simple_config_clear_queued_configs(void)
+{
+	if (queued_configs) {
+		cJSON_Delete(queued_configs);
+	}
+}
+
 int simple_config_set(const char *key, const struct simple_config_val *val)
 {
 	cJSON *child = NULL;
 
-	if (key == NULL || key[0] == '\0'
-		|| (
-			val->type != SIMPLE_CONFIG_VAL_STRING
-			&& val->type != SIMPLE_CONFIG_VAL_BOOL
-			&& val->type != SIMPLE_CONFIG_VAL_DOUBLE
-		)
-	) {
+	if (key == NULL || key[0] == '\0' ||
+	    (val->type != SIMPLE_CONFIG_VAL_STRING && val->type != SIMPLE_CONFIG_VAL_BOOL &&
+	     val->type != SIMPLE_CONFIG_VAL_DOUBLE)) {
 		return -EINVAL;
 	}
 
@@ -226,9 +213,9 @@ int simple_config_set(const char *key, const struct simple_config_val *val)
 		child = cJSON_AddStringToObject(queued_configs, key, val->val._str);
 	} else if (val->type == SIMPLE_CONFIG_VAL_BOOL) {
 		if (val->val._bool) {
-			child  = cJSON_AddTrueToObject(queued_configs, key);
+			child = cJSON_AddTrueToObject(queued_configs, key);
 		} else {
-			child  = cJSON_AddFalseToObject(queued_configs, key);
+			child = cJSON_AddFalseToObject(queued_configs, key);
 		}
 	} else if (val->type == SIMPLE_CONFIG_VAL_DOUBLE) {
 		child = cJSON_AddNumberToObject(queued_configs, key, val->val._double);
