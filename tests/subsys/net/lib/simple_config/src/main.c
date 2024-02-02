@@ -142,6 +142,33 @@ void test_handle_incoming_settings_rich_delta(void)
 	TEST_ASSERT_EQUAL(4, simple_config_callback_fake.call_count);
 }
 
+
+void test_simple_config_set_no_key(void)
+{
+	struct simple_config_val val = {.type = SIMPLE_CONFIG_VAL_BOOL, .val._bool=true};
+	int err = simple_config_set(NULL, &val);
+
+	TEST_ASSERT_EQUAL(-EINVAL, err);
+}
+
+void test_simple_config_set_empty_key(void)
+{
+	struct simple_config_val val = {.type = SIMPLE_CONFIG_VAL_BOOL, .val._bool=true};
+	int err = simple_config_set("", &val);
+
+	TEST_ASSERT_EQUAL(-EINVAL, err);
+}
+
+void test_simple_config_set_invalid_type(void)
+{
+	struct simple_config_val val = {.type = -1};
+	int err = simple_config_set("", &val);
+
+	TEST_ASSERT_EQUAL(-EINVAL, err);
+}
+
+
+
 /* It is required to be added to each test. That is because unity's
  * main may return nonzero, while zephyr's main currently must
  * return 0 in all cases (other values are reserved).
