@@ -91,11 +91,13 @@ void test_handle_incoming_settings_rich_delta(void)
 	cJSON myfalse = {
 		.type = cJSON_False,
 		.string = "myfalse",
+		.valuestring = "false",
 	};
 	cJSON mytrue = {
 		.type = cJSON_True,
 		.string = "mytrue",
 		.next = &myfalse,
+		.valuestring = "true",
 	};
 	cJSON mynumber = {
 		.type = cJSON_Number,
@@ -103,12 +105,14 @@ void test_handle_incoming_settings_rich_delta(void)
 		.valuedouble = 5,
 		.valueint = 5,
 		.next = &mytrue,
+		.valuestring = "5",
 	};
 	cJSON mystr = {
 		.type = cJSON_String,
 		.string = "mystr",
 		.valuestring = "foo",
 		.next = &mynumber,
+		.valuestring = "\"foo\"",
 	};
 	cJSON config = {
 		.type = cJSON_Object,
@@ -134,7 +138,8 @@ void test_handle_incoming_settings_rich_delta(void)
 
 	int err = simple_config_handle_incoming_settings(buf, sizeof(buf));
 
-	TEST_ASSERT_EQUAL(-ENOENT, err);
+	TEST_ASSERT_EQUAL(0, err);
+	TEST_ASSERT_EQUAL(4, simple_config_callback_fake.call_count);
 }
 
 /* It is required to be added to each test. That is because unity's
