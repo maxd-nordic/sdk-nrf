@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "Application sample"
+
+module = APP
+module-dep = LOG
+module-str = Log level for sample
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+endmenu # Application sample
+
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu # Zephyr Kernel
