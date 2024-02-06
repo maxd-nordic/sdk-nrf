@@ -12,7 +12,7 @@
 #include <zephyr/net/conn_mgr_connectivity.h>
 #include <zephyr/net/conn_mgr_monitor.h>
 
-LOG_MODULE_REGISTER(fota_support_coap, CONFIG_APP_LOG_LEVEL);
+LOG_MODULE_REGISTER(simple_config_sample, CONFIG_APP_LOG_LEVEL);
 
 K_SEM_DEFINE(connected_sem, 0, 1);
 
@@ -61,7 +61,7 @@ int coap_fota_begin(void)
 	return nrf_cloud_fota_poll_start(&ctx);
 }
 
-int coap_fota_thread_fn(void)
+int fota_task(void)
 {
 	int err;
 
@@ -78,6 +78,7 @@ int coap_fota_thread_fn(void)
 		 * it. This is a blocking operation which can take a long time.
 		 * This function is likely to reboot in order to complete the FOTA update.
 		 */
+		LOG_DBG("checking for FOTA request");
 		err = nrf_cloud_fota_poll_process(&ctx);
 		if (err == -EAGAIN) {
 			LOG_DBG("Retrying in %d minute(s)",
@@ -173,5 +174,5 @@ static void network_task(void)
 int main(void)
 {
 	network_task();
-	coap_fota_thread_fn();
+	fota_task();
 }
