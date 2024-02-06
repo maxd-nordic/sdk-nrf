@@ -147,6 +147,9 @@ int simple_config_update(void)
 	err = simple_config_handle_incoming_settings(buf, sizeof(buf));
 	if (err) {
 		LOG_INF("handling incoming settings failed: %d", err);
+		if (err == -EFAULT || err == -EACCES) {
+			return err;
+		}
 	}
 
 	root_obj = simple_config_construct_settings_obj();

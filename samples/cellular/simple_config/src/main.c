@@ -6,6 +6,7 @@
 #include <zephyr/kernel.h>
 #include <net/nrf_cloud.h>
 #include <net/nrf_cloud_coap.h>
+#include <net/simple_config.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/dfu/mcuboot.h>
@@ -65,6 +66,23 @@ int fota_task(void)
 {
 	int err;
 
+	k_sem_take(&connected_sem, K_FOREVER);
+	k_sem_give(&connected_sem);
+	err = nrf_cloud_coap_connect("1.0.0");
+	if (err) {
+		LOG_ERR("Error initializing cloud connection: %d", err);
+		return err;
+	}
+	err = coap_fota_init();
+	if (err) {
+		LOG_ERR("Error initializing FOTA: %d", err);
+		return err;
+	}
+	err = coap_fota_begin();
+	if (err) {
+		LOG_ERR("Error starting FOTA: %d", err);
+		return err;
+	}
 	while (1) {
 		/* Wait until we are able to communicate. */
 		LOG_DBG("Waiting for valid connection before processing FOTA");
@@ -80,6 +98,7 @@ int fota_task(void)
 		 */
 		LOG_DBG("checking for FOTA request");
 		err = nrf_cloud_fota_poll_process(&ctx);
+		LOG_DBG("nrf_cloud_fota_poll_process: %d", err);
 		if (err == -EAGAIN) {
 			LOG_DBG("Retrying in %d minute(s)",
 				JOB_CHECK_RATE_MINUTES);
