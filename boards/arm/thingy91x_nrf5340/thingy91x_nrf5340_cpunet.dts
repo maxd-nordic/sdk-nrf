@@ -28,6 +28,14 @@
 	aliases {
 		watchdog0 = &wdt0;
 	};
+
+	nrf_radio_coex: thingy91x-coex {
+		status = "okay";
+		compatible = "nordic,thingy91x-ble-coex";
+		swctrl1-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+		lte-coex2-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		rf-fe-sr-en-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &gpiote {

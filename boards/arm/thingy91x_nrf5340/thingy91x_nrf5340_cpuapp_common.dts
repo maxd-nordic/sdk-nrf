@@ -57,6 +57,14 @@
 		mcuboot-led0 = &led0;
 		watchdog0 = &wdt0;
 	};
+
+	gpio_fwd: nrf-gpio-forwarder {
+		compatible = "nordic,nrf-gpio-forwarder";
+		status = "okay";
+		coex {
+			gpios = <&gpio0 3 0>, <&gpio0 6 0>, <&gpio0 17 0>;
+		};
+	};
 };
 
 &adc {

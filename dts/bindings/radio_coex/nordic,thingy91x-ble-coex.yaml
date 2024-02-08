@@ -1,0 +1,30 @@
+# Copyright (c) 2024 Nordic Semiconductor
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+description: |
+    This is a representation of coexistence for the Thingy:91 X,
+    where WiFi and LTE take precedence over BLE.
+    Additionally, a RF_SR_EN signal has to be asserted whenever
+    either BLE or WiFi use the radio.
+
+
+compatible: "nordic,thingy91x-ble-coex"
+
+include: base.yaml
+
+properties:
+    swctrl1-gpios:
+        type: phandle-array
+        required: true
+        description: |
+            Input GPIO of the SOC connected to nRF70, being asserted when it needs the 2.4G antenna.
+    lte-coex2-gpios:
+        type: phandle-array
+        required: true
+        description: |
+            Input GPIO of the SOC connected to nrf91, being asserted when LTE is active on its antenna.
+    rf-fe-sr-en-gpios:
+        type: phandle-array
+        required: true
+        description: |
+            Output GPIO of the SOC connected to the load switch powering the 2.4GHz RF switch.
