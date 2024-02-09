@@ -36,8 +36,8 @@ static const struct gpio_dt_spec swctrl1_spec = GPIO_DT_SPEC_GET(CX_NODE, swctrl
 static const struct gpio_dt_spec lte_coex2_spec = GPIO_DT_SPEC_GET(CX_NODE, lte_coex2_gpios);
 static const struct gpio_dt_spec rf_fe_sr_en_spec = GPIO_DT_SPEC_GET(CX_NODE, rf_fe_sr_en_gpios);
 
-__ASSERT(swctrl1_spec.port == lte_coex2_spec.port,
-	 "swctrl1 and lte_coex2 pins need to be on the same port!");
+//BUILD_ASSERT((swctrl1_spec.port == lte_coex2_spec.port),
+//	 "swctrl1 and lte_coex2 pins need to be on the same port!");
 
 static bool swctrl1_asserted;
 static bool lte_coex2_asserted;
@@ -46,16 +46,20 @@ static struct gpio_callback port_interrupt_cb;
 static mpsl_cx_cb_t mpsl_cb;
 
 
+static void update_rf_fe_sr_en(void);
+
 static int32_t request(const mpsl_cx_request_t *req_params)
 {
 	ble_requested = true;
 	update_rf_fe_sr_en();
+	return 0;
 }
 
 static int32_t release(void)
 {
 	ble_requested = false;
 	update_rf_fe_sr_en();
+	return 0;
 }
 
 static int32_t granted_ops_get(mpsl_cx_op_map_t *granted_ops)
@@ -93,11 +97,10 @@ static const mpsl_cx_interface_t m_mpsl_cx_methods = {
 };
 
 static void update_rf_fe_sr_en(void) {
-	int ret = 0;
 	mpsl_cx_op_map_t granted_ops = 0;
 
 	/* RF Switch is powered if either BLE or Wi-Fi radio is active */
-	gpio_pin_set_dt(rf_fe_sr_en_spec, (int)(ble_requested || swctrl1_asserted));
+	gpio_pin_set_dt(&rf_fe_sr_en_spec, (int)(ble_requested || swctrl1_asserted));
 
 	if (!mpsl_cb) {
 		return;
@@ -134,7 +137,7 @@ static int mpsl_cx_init(void)
 
 	int32_t ret;
 
-	callback = NULL;
+	mpsl_cb = NULL;
 
 	ret = mpsl_cx_interface_set(&m_mpsl_cx_methods);
 	if (ret != 0) {

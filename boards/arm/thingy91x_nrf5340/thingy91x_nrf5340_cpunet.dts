@@ -38,6 +38,10 @@
 	};
 };
 
+&radio {
+	coex = <&nrf_radio_coex>;
+};
+
 &gpiote {
 	status = "okay";
 };

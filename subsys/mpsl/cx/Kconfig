@@ -7,7 +7,7 @@
 DT_COMPAT_CX_NRF700X := nordic,nrf700x-coex
 DT_COMPAT_CX_THREAD := generic-radio-coex-three-wire
 DT_COMPAT_CX_BT_1WIRE := generic-radio-coex-one-wire
-# what about sdc-radio-coex-one-wire ?
+DT_COMPAT_CX_BT_1WIRE_SDC := sdc-radio-coex-one-wire
 DT_COMPAT_CX_THINGY91X := nordic,thingy91x-ble-coex
 
 
@@ -29,13 +29,19 @@ config MPSL_CX_THREAD_SUPPORT
 	help
 	  Indicates that the device tree contains a nrf_radio_coex node compatible with "generic-radio-coex-three-wire".
 
-config MPSL_CX_BT_1WIRE
+config MPSL_CX_BT_1WIRE_SUPPORT
 	bool
 	default $(dt_nodelabel_has_compat,nrf_radio_coex,$(DT_COMPAT_CX_BT_1WIRE))
 	help
 	  Indicates that the device tree contains a nrf_radio_coex node compatible with "generic-radio-coex-one-wire".
 
-config MPSL_CX_THINGY91X
+config MPSL_CX_BT_1WIRE_SDC_SUPPORT
+	bool
+	default $(dt_nodelabel_has_compat,nrf_radio_coex,$(DT_COMPAT_CX_BT_1WIRE_SDC))
+	help
+	  Indicates that the device tree contains a nrf_radio_coex node compatible with "sdc-radio-coex-one-wire".
+
+config MPSL_CX_THINGY91X_SUPPORT
 	bool
 	default $(dt_nodelabel_has_compat,nrf_radio_coex,$(DT_COMPAT_CX_THINGY91X))
 	help
@@ -99,7 +105,7 @@ config MPSL_CX_BT_1WIRE
 	select NRFX_GPIOTE
 	select GPIO
 	select NRFX_TIMER1
-	depends on MPSL_CX_BT_1WIRE
+	depends on MPSL_CX_BT_1WIRE_SUPPORT || MPSL_CX_BT_1WIRE_SDC_SUPPORT
 	bool "Bluetooth Radio 1-Wire Coexistence"
 	help
 	  Radio Coexistence interface implementation using a simple 1-wire PTA
@@ -107,7 +113,7 @@ config MPSL_CX_BT_1WIRE
 
 config MPSL_CX_THINGY91X
 	depends on SOC_SERIES_NRF53X
-	depends on MPSL_CX_THINGY91X
+	depends on MPSL_CX_THINGY91X_SUPPORT
 	select GPIO
 	bool "Thingy:91 X Bluetooth Coexistence"
 

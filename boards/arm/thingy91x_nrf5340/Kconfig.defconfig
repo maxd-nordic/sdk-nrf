@@ -87,6 +87,15 @@ if BOARD_THINGY91X_NRF5340_CPUNET
 config BT_CTLR
 	default y if BT
 
+config MPSL_CX
+	default y if BT
+
+config MPSL
+	default y if BT
+
+config MULTITHREADING
+	default y if BT
+
 endif # BOARD_THINGY91X_NRF5340_CPUNET
 
 config USE_SEGGER_RTT
