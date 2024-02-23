@@ -120,6 +120,18 @@ jobs:
           pipx run doc2dash -d docsets/ -n tfm html/tfm
           pipx run doc2dash -d docsets/ -n zephyr html/zephyr
 
+      - name: Add docset icons
+        working-directory: ncs/nrf/doc/
+        run: |
+          cp docset-logos/zephyr-logo.png _build/docsets/kconfig.docset/icon.png
+          cp docset-logos/matter-logo.png _build/docsets/matter.docset/icon.png
+          cp docset-logos/mcuboot-logo.png _build/docsets/mcuboot.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/nrf.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/nrfxlib.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/nrfx.docset/icon.png
+          cp docset-logos/tfm-logo.png _build/docsets/tfm.docset/icon.png
+          cp docset-logos/zephyr-logo.png _build/docsets/zephyr.docset/icon.png
+
       - name: Fix KConfig docset
         working-directory: ncs/nrf/doc/_build/docsets/kconfig.docset/Contents/Resources/Documents
         run: python3 ../../../../../../_scripts/rebuild_kconfig_index.py
