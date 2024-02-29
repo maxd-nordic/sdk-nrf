@@ -154,7 +154,15 @@ jobs:
 
       - name: Fix links between docsets
         working-directory: ncs/nrf/doc/_build/docsets/
-        run: python3 ../../_scripts/connect_docsets.py
+        run: |
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./nrfxlib/([^"]*)"#\1 href=\"\2../../../../../nrfxlib.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./mcuboot/([^"]*)"#\1 href=\"\2../../../../../mcuboot.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./matter/([^"]*)"#\1 href=\"\2../../../../../matter.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./nrfx/([^"]*)"#\1 href=\"\2../../../../../nrfx.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./kconfig/([^"]*)"#\1 href=\"\2../../../../../kconfig.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./nrf/([^"]*)"#\1 href=\"\2../../../../../nrf.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./zephyr/([^"]*)"#\1 href=\"\2../../../../../zephyr.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./tfm/([^"]*)"#\1 href=\"\2../../../../../tfm.docset/Contents/Resources/Documents/\3"#g' {} +
 
       - name: Compress Docsets
         working-directory: ncs/nrf/doc/_build
