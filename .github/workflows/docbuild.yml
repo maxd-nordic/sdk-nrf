@@ -152,6 +152,10 @@ jobs:
         working-directory: ncs/nrf/doc/_build/docsets/nrfxlib.docset/Contents/Resources/Documents
         run: python3 ../../../../../../_scripts/filter_docset_index.py
 
+      - name: Fix links between docsets
+        working-directory: ncs/nrf/doc/_build/docsets/
+        run: python3 ../../_scripts/connect_docsets.py
+
       - name: Compress Docsets
         working-directory: ncs/nrf/doc/_build
         run: tar czf docsets.tar.xz docsets/
