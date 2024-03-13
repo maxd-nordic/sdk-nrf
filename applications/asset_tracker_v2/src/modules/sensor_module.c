@@ -91,8 +91,6 @@ static void fg_update_work_handler(struct k_work *work)
 	float temp;
 	float state_of_charge;
 	float delta;
-	float time_to_empty;
-	float time_to_full;
 	struct sensor_module_event *sensor_module_event;
 	static struct nrf_fuel_gauge_state_info fg_state;
 	int ret;
@@ -110,11 +108,6 @@ static void fg_update_work_handler(struct k_work *work)
 	state_of_charge = nrf_fuel_gauge_process(voltage, current, temp, delta, &fg_state);
 
 	LOG_DBG("FG i:%02d", fg_burst_index);
-
-	/* calculate TTE/TTF */
-	time_to_empty = nrf_fuel_gauge_tte_get();
-	time_to_full = nrf_fuel_gauge_ttf_get(-max_charge_current, -term_charge_current);
-	LOG_DBG("tte: %f, ttf: %f, soc: %f, temp: %f, voltage: %f, current: %f, yhat: %f, r0: %f, t_trunc: %f", time_to_empty, time_to_full, state_of_charge, temp, voltage, current, fg_state.yhat, fg_state.r0, fg_state.T_truncated);
 
 	fg_burst_current_accumulated += delta * current;
 	fg_burst_delta_accumulated += delta;
@@ -136,18 +129,7 @@ static void fg_update_work_handler(struct k_work *work)
 	sensor_module_event->data.bat.temp = roundf(temp * 10);
 	sensor_module_event->data.bat.has_current = true;
 	sensor_module_event->data.bat.has_temp = true;
-	sensor_module_event->data.bat.has_ttf = false;
-	sensor_module_event->data.bat.has_tte = false;
 	sensor_module_event->data.bat.battery_level = roundf(state_of_charge);
-	if (isnormal(time_to_full)) {
-		sensor_module_event->data.bat.has_ttf = true;
-		sensor_module_event->data.bat.ttf = roundf(time_to_full);
-	}
-
-	if (isnormal(time_to_empty)) {
-		sensor_module_event->data.bat.has_tte = true;
-		sensor_module_event->data.bat.tte = roundf(time_to_empty);
-	}
 	sensor_module_event->type = SENSOR_EVT_FUEL_GAUGE_READY;
 	APP_EVENT_SUBMIT(sensor_module_event);
 }
@@ -394,8 +376,6 @@ static void battery_data_get(void)
 
 	sensor_module_event->data.bat.has_current = false;
 	sensor_module_event->data.bat.has_temp = false;
-	sensor_module_event->data.bat.has_ttf = false;
-	sensor_module_event->data.bat.has_tte = false;
 
 	__ASSERT(sensor_module_event, "Not enough heap left to allocate event");
 

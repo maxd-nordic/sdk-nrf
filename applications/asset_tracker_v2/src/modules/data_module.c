@@ -1148,12 +1148,8 @@ static void on_all_states(struct data_msg_data *msg)
 	if (IS_EVENT(msg, sensor, SENSOR_EVT_FUEL_GAUGE_READY)) {
 		struct cloud_data_fuel_gauge new_battery_data = {
 			.battery_level = msg->module.sensor.data.bat.battery_level,
-			.has_tte = msg->module.sensor.data.bat.has_tte,
-			.has_ttf = msg->module.sensor.data.bat.has_ttf,
 			.has_temp = msg->module.sensor.data.bat.has_temp,
 			.has_current = msg->module.sensor.data.bat.has_current,
-			.tte = msg->module.sensor.data.bat.tte,
-			.ttf = msg->module.sensor.data.bat.ttf,
 			.temp = msg->module.sensor.data.bat.temp,
 			.mA = msg->module.sensor.data.bat.mA,
 			.mV = msg->module.sensor.data.bat.mV,

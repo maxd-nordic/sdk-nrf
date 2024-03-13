@@ -42,12 +42,8 @@ extern "C" {
 struct cloud_data_fuel_gauge {
 	int battery_level;
 
-	bool has_tte;
-	bool has_ttf;
 	bool has_temp;
 	bool has_current;
-	int tte;
-	int ttf;
 	int temp;
 	int mA;
 

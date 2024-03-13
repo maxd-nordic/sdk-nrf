@@ -1036,34 +1036,6 @@ int json_common_battery_data_add(cJSON *parent,
 		}
 	}
 
-	if (data->has_tte){
-		err = json_add_number(battery_val_obj, DATA_FG_TTE, data->tte);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
-	} else {
-		err = json_add_number(battery_val_obj, DATA_FG_TTE, NAN);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
-	}
-
-	if (data->has_ttf){
-		err = json_add_number(battery_val_obj, DATA_FG_TTF, data->ttf);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
-	} else {
-		err = json_add_number(battery_val_obj, DATA_FG_TTF, NAN);
-		if (err) {
-			LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
-			goto exit;
-		}
-	}
-
 	err = json_add_number(battery_obj, DATA_TIMESTAMP, data->ts);
 	if (err) {
 		LOG_ERR("Encoding error: %d returned at %s:%d", err, __FILE__, __LINE__);
