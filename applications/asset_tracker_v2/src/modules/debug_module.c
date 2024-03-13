@@ -12,6 +12,8 @@
 #include <memfault/core/trace_event.h>
 #include <memfault/ports/watchdog.h>
 #include <memfault/panics/coredump.h>
+#include <memfault/components.h>
+#include <memfault_ncs.h>
 #endif
 
 #define MODULE debug_module
@@ -105,6 +107,8 @@ entry:
 		APP_EVENT_SUBMIT(debug_module_event);
 
 		len = sizeof(data);
+
+		k_sleep(K_MSEC(1000));
 	}
 #endif
 	goto entry;
@@ -257,6 +261,33 @@ static void send_memfault_data(void)
 	}
 }
 
+#if CONFIG_MEMFAULT
+
+static void prv_memfault_data_handler(struct k_work *work) {
+	extern void send_memfault_data(void);
+	k_sleep(K_MSEC(100));
+	send_memfault_data();
+}
+K_WORK_DEFINE(s_push_memfault_data, prv_memfault_data_handler);
+
+void memfault_metrics_heartbeat_collect_data(void)
+{
+	/* Standard NCS metrics */
+	memfault_ncs_metrics_collect_data();
+	memfault_metrics_battery_collect_data();
+
+	/* Trigger a send of HB data immediately */
+	k_work_submit(&s_push_memfault_data);
+}
+
+/**
+ * Override default behavior and always reset device when a crash occurs even
+ * if we have a debugger attached
+ */
+void memfault_platform_halt_if_debugging(void) { }
+
+#endif
+
 static void add_location_metrics(uint8_t satellites, uint32_t search_time,
 				 enum location_module_event_type event)
 {
@@ -285,8 +316,6 @@ static void add_location_metrics(uint8_t satellites, uint32_t search_time,
 	if (err) {
 		LOG_ERR("Failed updating gnss_satellites_tracked_count metric, error: %d", err);
 	}
-
-	memfault_metrics_heartbeat_debug_trigger();
 }
 
 static void memfault_handle_event(struct debug_msg_data *msg)

@@ -34,6 +34,10 @@
 #include "events/location_module_event.h"
 #include "events/debug_module_event.h"
 
+#if defined(CONFIG_MEMFAULT)
+#include "memfault/components.h"
+#endif
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_CLOUD_MODULE_LOG_LEVEL);
 
@@ -191,6 +195,16 @@ static void sub_state_set(enum sub_state_type new_state)
 		LOG_DBG("Sub state: %s", sub_state2str(sub_state));
 		return;
 	}
+
+#if defined(CONFIG_MEMFAULT)
+	if (new_state == SUB_STATE_CLOUD_CONNECTED) {
+		memfault_metrics_connectivity_connected_state_change(
+			kMemfaultMetricsConnectivityState_Connected);
+	} else {
+		memfault_metrics_connectivity_connected_state_change(
+			kMemfaultMetricsConnectivityState_ConnectionLost);
+	}
+#endif
 
 	LOG_DBG("Sub state transition %s --> %s",
 		sub_state2str(sub_state),
@@ -1154,13 +1168,18 @@ static void on_sub_state_cloud_connected(struct cloud_msg_data *msg)
 			}
 			break;
 		case MEMFAULT:
+#if CONFIG_MEMFAULT
 			err = cloud_wrap_memfault_data_send(message->buf,
 							    message->len,
 							    ack,
 							    msg->module.cloud.data.message.id);
 			if (err) {
 				LOG_WRN("cloud_wrap_memfault_data_send, err: %d", err);
+                                memfault_metrics_connectivity_record_memfault_sync_failure();
+			} else {
+				memfault_metrics_connectivity_record_memfault_sync_success();
 			}
+#endif
 			break;
 		default:
 			LOG_ERR("Unknown data type");
@@ -1292,8 +1311,12 @@ static void module_thread_fn(void)
 	}
 
 	state_set(STATE_LTE_INIT);
-	sub_state_set(SUB_STATE_CLOUD_DISCONNECTED);
 
+#if CONFIG_MEMFAULT
+	memfault_metrics_connectivity_connected_state_change(
+		kMemfaultMetricsConnectivityState_Started);
+#endif
+	sub_state_set(SUB_STATE_CLOUD_DISCONNECTED);
 	k_work_init_delayable(&connect_check_work, connect_check_work_fn);
 
 	while (true) {

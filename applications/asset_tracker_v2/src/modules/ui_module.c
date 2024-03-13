@@ -23,6 +23,10 @@
 #include "events/cloud_module_event.h"
 #include "events/led_state_event.h"
 
+#if CONFIG_MEMFAULT
+#include "memfault/components.h"
+#endif
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_UI_MODULE_LOG_LEVEL);
 
@@ -270,6 +274,18 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 		ui_module_event->data.ui.timestamp = k_uptime_get();
 
 		APP_EVENT_SUBMIT(ui_module_event);
+
+		/* trigger assert for double tap for demo purposes */
+		static int64_t last_update_ms = 0;
+		if ((k_uptime_get() - last_update_ms) < 1000) {
+			__ASSERT(0, "double tap demo assert");
+		}
+		last_update_ms = k_uptime_get();
+
+#if CONFIG_MEMFAULT
+		/* generate heartbeat for demo purposes */
+		memfault_metrics_heartbeat_debug_trigger();
+#endif
 	}
 
 #if defined(CONFIG_BOARD_NRF9160DK_NRF9160_NS) || defined(CONFIG_BOARD_NRF9161DK_NRF9161_NS)
