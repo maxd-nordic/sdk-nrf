@@ -57,6 +57,12 @@ config DEBUG_MODULE_MEMFAULT_UPDATES_MIN_INTERVAL_SEC
 	int "Minimum time between Memfault metric updates, in seconds"
 	default 900
 
+if BOARD_THINGY91_NRF9160_NS
+	config DEBUG_MODULE_BATTERY
+	bool "Battery debug module"
+	default y
+endif # BOARD_THINGY91_NRF9160_NS
+
 endif # DEBUG_MODULE && MEMFAULT
 
 module = DEBUG_MODULE
