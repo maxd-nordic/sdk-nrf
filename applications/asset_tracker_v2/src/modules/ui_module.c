@@ -275,6 +275,7 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 
 		APP_EVENT_SUBMIT(ui_module_event);
 
+#if CONFIG_MEMFAULT
 		/* trigger assert for double tap for demo purposes */
 		static int64_t last_update_ms = 0;
 		if ((k_uptime_get() - last_update_ms) < 1000) {
@@ -282,7 +283,6 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 		}
 		last_update_ms = k_uptime_get();
 
-#if CONFIG_MEMFAULT
 		/* generate heartbeat for demo purposes */
 		memfault_metrics_heartbeat_debug_trigger();
 #endif
