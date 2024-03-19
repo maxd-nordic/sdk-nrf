@@ -274,9 +274,6 @@ void memfault_metrics_heartbeat_collect_data(void)
 {
 	/* Standard NCS metrics */
 	memfault_ncs_metrics_collect_data();
-#if defined(CONFIG_DEBUG_MODULE_BATTERY)
-	memfault_metrics_battery_collect_data();
-#endif
 
 	/* Trigger a send of HB data immediately */
 	k_work_submit(&s_push_memfault_data);
