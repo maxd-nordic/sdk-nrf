@@ -16,6 +16,10 @@
 #include <modem/modem_info.h>
 #include <zephyr/sys/reboot.h>
 
+#include <dk_buttons_and_leds.h>
+
+#include "simple_config.h"
+
 /* Register log module */
 LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
 
@@ -127,6 +131,39 @@ K_THREAD_DEFINE(network_task_id,
 		network_task, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO , 0, 0);
 
 
+int config_cb(const char *key, const struct simple_config_val *val)
+{
+	LOG_INF("config_cb: %s", key);
+	switch (val->type) {
+	case SIMPLE_CONFIG_VAL_BOOL:
+		LOG_INF("bool: %d", val->val._bool);
+		break;
+	case SIMPLE_CONFIG_VAL_DOUBLE:
+		LOG_INF("double: %f", val->val._double);
+		break;
+	case SIMPLE_CONFIG_VAL_STRING:
+		LOG_INF("string: %s", val->val._str);
+		break;
+	default:
+		LOG_ERR("unknown type");
+		return -EINVAL;
+	}
+
+	if (strcmp(key, "led_red") == 0) {
+		if (val->type != SIMPLE_CONFIG_VAL_BOOL) {
+			LOG_ERR("invalid type");
+			return -EINVAL;
+		}
+		if (val->val._bool) {
+			dk_set_led_on(DK_LED1);
+		} else {
+			dk_set_led_off(DK_LED1);
+		}
+	}
+
+	return 0;
+}
+
 int main(void)
 {
 	int err = nrf_cloud_coap_init();
@@ -136,6 +173,11 @@ int main(void)
 		SEND_FATAL_ERROR();
 	}
 	LOG_INF("Hello World! %s", CONFIG_BOARD);
+
+	simple_config_set_callback(config_cb);
+
+	dk_leds_init();
+	dk_set_led_on(DK_LED1);
 
 	LOG_INF("waiting for network connectivity");
 	k_sem_take(&connected_sem, K_FOREVER);
@@ -176,6 +218,16 @@ int main(void)
 	{
 		LOG_ERR("nrf_cloud_coap_shadow_device_status_update, error: %d", err);
 		SEND_FATAL_ERROR();
+	}
+
+	err = simple_config_set("led_red", &(struct simple_config_val){.type = SIMPLE_CONFIG_VAL_BOOL, .val._bool = true});
+	if (err)
+	{
+		LOG_ERR("simple_config_set, error: %d", err);
+	}
+	while (true) {
+		simple_config_update();
+		k_sleep(K_SECONDS(10));
 	}
 
 	return 0;
