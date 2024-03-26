@@ -163,6 +163,7 @@ int simple_config_update(void)
 	}
 
 	if (cJSON_PrintPreallocated(root_obj, buf, sizeof(buf), false)) {
+		LOG_DBG("sending settings: %s", buf);
 		err = nrf_cloud_coap_shadow_state_update(buf);
 		if (err) {
 			LOG_ERR("nrf_cloud_coap_shadow_state_update failed: %d", err);

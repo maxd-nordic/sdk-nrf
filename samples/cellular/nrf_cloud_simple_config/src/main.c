@@ -133,19 +133,13 @@ K_THREAD_DEFINE(network_task_id,
 
 int config_cb(const char *key, const struct simple_config_val *val)
 {
-	LOG_INF("config_cb: %s", key);
-	switch (val->type) {
-	case SIMPLE_CONFIG_VAL_BOOL:
-		LOG_INF("bool: %d", val->val._bool);
-		break;
-	case SIMPLE_CONFIG_VAL_DOUBLE:
-		LOG_INF("double: %f", val->val._double);
-		break;
-	case SIMPLE_CONFIG_VAL_STRING:
-		LOG_INF("string: %s", val->val._str);
-		break;
-	default:
-		LOG_ERR("unknown type");
+	if (val->type == SIMPLE_CONFIG_VAL_STRING) {
+		LOG_DBG("key: %s, val: %s", key, val->val._str);
+	} else if (val->type == SIMPLE_CONFIG_VAL_BOOL) {
+		LOG_DBG("key: %s, val: %s", key, val->val._bool ? "true" : "false");
+	} else if (val->type == SIMPLE_CONFIG_VAL_DOUBLE) {
+		LOG_DBG("key: %s, val: %f", key, val->val._double);
+	} else {
 		return -EINVAL;
 	}
 
@@ -159,9 +153,10 @@ int config_cb(const char *key, const struct simple_config_val *val)
 		} else {
 			dk_set_led_off(DK_LED1);
 		}
+		return 0;
 	}
 
-	return 0;
+	return -EINVAL;
 }
 
 int main(void)
