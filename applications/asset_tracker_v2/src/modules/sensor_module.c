@@ -490,7 +490,6 @@ static void environmental_data_get(void)
 
 	float voltage_f = sensor_value_to_double(&voltage);
 	float current_f = sensor_value_to_double(&current);
-	LOG_WRN("Channel %d: %.2fmA", 0, current_f * 1000.0);
 	sensor_module_event2 = new_sensor_module_event();
 	__ASSERT(sensor_module_event2, "Not enough heap left to allocate event");
 
@@ -498,7 +497,7 @@ static void environmental_data_get(void)
 	sensor_module_event2->data.solar.current = current_f;
 	sensor_module_event2->data.solar.timestamp = k_uptime_get();
 	sensor_module_event2->type = SENSOR_EVT_SOLAR_DATA_READY;
-	
+
 	APP_EVENT_SUBMIT(sensor_module_event2);
 #endif
 	ARG_UNUSED(err);
