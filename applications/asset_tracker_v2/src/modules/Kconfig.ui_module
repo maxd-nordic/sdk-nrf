@@ -15,6 +15,11 @@ config UI_THREAD_STACK_SIZE
 	int "UI module thread stack size"
 	default 512
 
+config UI_DOUBLE_TAP_TO_CRASH
+	bool "Double tap to crash"
+	depends on MEMFAULT
+	default n
+
 endif # UI_MODULE
 
 module = UI_MODULE
