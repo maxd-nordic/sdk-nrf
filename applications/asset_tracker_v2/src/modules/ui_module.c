@@ -271,9 +271,9 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 
 		ui_module_event->type = UI_EVT_BUTTON_DATA_READY;
 #if CONFIG_MEMFAULT
-		ui_module_event->data.ui.button_number = 1;
-#else
 		ui_module_event->data.ui.button_number = 42;
+#else
+		ui_module_event->data.ui.button_number = 1;
 #endif
 		ui_module_event->data.ui.timestamp = k_uptime_get();
 
