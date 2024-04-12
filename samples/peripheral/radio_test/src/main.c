@@ -7,6 +7,9 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
+#include <zephyr/drivers/gpio.h>
+
+const struct device *gpio_dev = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
 static void clock_init(void)
 {
@@ -45,6 +48,8 @@ int main(void)
 	printk("Starting Radio Test example\n");
 
 	clock_init();
+
+	gpio_pin_configure(gpio_dev, 18, GPIO_OUTPUT_LOW);
 
 	return 0;
 }
