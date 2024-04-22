@@ -39,6 +39,10 @@ config DOMAIN_CPUNET_BOARD
 	  another board. For example hci_rpmsg on the nRF5340_cpunet for
 	  Bluetooth applications.
 
+config BOARD_SERIAL_BACKEND_CDC_ACM
+	bool "USB CDC"
+	default y if !IS_BOOTLOADER_IMG
+
 endif
 
 if BOARD_THINGY91X_NRF5340_CPUNET

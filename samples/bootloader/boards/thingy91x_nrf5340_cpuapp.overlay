@@ -1,0 +1,9 @@
+/ {
+	chosen {
+		zephyr,console = &rtt0;
+		zephyr,shell-uart = &rtt0;
+		zephyr,uart-mcumgr = &rtt0;
+		zephyr,bt-mon-uart = &rtt0;
+		zephyr,bt-c2h-uart = &rtt0;
+	};
+};

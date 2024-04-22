@@ -8,11 +8,12 @@
 / {
 
 	chosen {
-		zephyr,console = &uart0;
-		zephyr,shell-uart = &uart0;
-		zephyr,uart-mcumgr = &uart0;
-		zephyr,bt-mon-uart = &uart0;
-		zephyr,bt-c2h-uart = &uart0;
+		zephyr,console = &cdc_acm_uart0;
+		zephyr,shell-uart = &cdc_acm_uart0;
+		zephyr,uart-mcumgr = &cdc_acm_uart0;
+		zephyr,bt-mon-uart = &cdc_acm_uart0;
+		zephyr,bt-c2h-uart = &cdc_acm_uart0;
+		zephyr,boot-mode = &boot_mode0;
 		zephyr,bt-hci-ipc = &ipc0;
 		nordic,802154-spinel-ipc = &ipc0;
 		zephyr,ieee802154 = &ieee802154;
@@ -136,6 +137,10 @@
 zephyr_udc0: &usbd {
 	compatible = "nordic,nrf-usbd";
 	status = "okay";
+
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
 };
 
 / {
@@ -188,15 +193,6 @@ zephyr_udc0: &usbd {
 	rtt0: rtt_chan0 {
 		compatible = "segger,rtt-uart";
 		status = "okay";
-	};
-
-	chosen {
-		zephyr,boot-mode = &boot_mode0;
-		zephyr,console = &rtt0;
-		zephyr,shell-uart = &rtt0;
-		zephyr,uart-mcumgr = &rtt0;
-		zephyr,bt-mon-uart = &rtt0;
-		zephyr,bt-c2h-uart = &rtt0;
 	};
 };
 
