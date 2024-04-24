@@ -20,12 +20,6 @@ if (CONFIG_SECURE_BOOT)
       SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bootloader
       )
   endif()
-  if (CONFIG_SOC_NRF5340_CPUAPP AND CONFIG_BOOTLOADER_MCUBOOT)
-      add_overlay_config(
-        mcuboot
-        ${ZEPHYR_NRF_MODULE_DIR}/subsys/bootloader/image/log_minimal.conf
-        )
-  endif()
   if (CONFIG_BUILD_S1_VARIANT AND "${CONFIG_S1_VARIANT_IMAGE_NAME}" STREQUAL "app")
     add_child_image(
       NAME s1_image

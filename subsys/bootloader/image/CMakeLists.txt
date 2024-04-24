@@ -21,11 +21,6 @@ endif()
 
 if (CONFIG_BOOTLOADER_MCUBOOT)
   set(image_to_boot mcuboot)
-
-  add_overlay_config(
-    mcuboot
-    ${CMAKE_CURRENT_SOURCE_DIR}/multi_image_mcuboot.conf
-    )
 endif()
 
 if (image_to_boot)

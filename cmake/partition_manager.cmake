@@ -662,7 +662,7 @@ to the external flash")
       set_property(
         TARGET partition_manager
         PROPERTY net_app_slot_size
-        ${PM_MCUBOOT_SECONDARY${sec_slot_idx}_SIZE}
+        ${PM_MCUBOOT_PRIMARY${sec_slot_idx}_SIZE}
         )
     endif()
 
