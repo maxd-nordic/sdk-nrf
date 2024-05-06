@@ -131,7 +131,7 @@
 			/* GPIO1 switches power to the short range RF front end */
 			ldsw_rf_fe_sr_en: GPIO1 {
 				gpio-hog;
-				output-low;
+				output-high;
 				gpios = <1 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
 			};
 			power_switch: GPIO2 {
@@ -150,7 +150,7 @@
 			reg_3v3: BUCK2 {
 				regulator-min-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
-				enable-gpios = <&gpios_pmic 2 GPIO_ACTIVE_HIGH>;
+				regulator-boot-on;
 			};
 			/* LDO1 is used as a load switch pulling the nPM60 enable line to VSYS */
 			ldsw_nPM60_en: LDO1 {
