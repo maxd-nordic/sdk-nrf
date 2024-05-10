@@ -20,15 +20,17 @@ import re
 
 RECOVER_NRF53 = b"\x8e"  # connectivity_bridge bootloader mode
 RECOVER_NRF91 = b"\x8f"  # nrf91 bootloader mode
+RESET_NRF53 = b"\x90"  # reset nrf53
+RESET_NRF91 = b"\x91"  # reset nrf91
 
 
-def add_args_to_parser(parser, require_image=False):
+def add_args_to_parser(parser, default_chip=""):
     # define argument to decide whether to recover nrf53 or nrf91
     parser.add_argument(
         "--chip",
         type=str,
         help="bootloader mode to trigger: nrf53 or nrf91",
-        default="",
+        default=default_chip,
     )
     parser.add_argument("--vid", type=int, help="vendor id", default=0x1915)
     parser.add_argument("--pid", type=int, help="product id", default=0x910A)
@@ -36,10 +38,6 @@ def add_args_to_parser(parser, require_image=False):
     parser.add_argument(
         "--debug", action="store_true", help="enable debug logging", default=False
     )
-    if require_image:
-        parser.add_argument("image", type=str, help="application update file")
-    else:
-        parser.add_argument("--image", type=str, help="application update file")
 
 
 def find_bulk_interface(device, descriptor_string, logging):
@@ -58,7 +56,7 @@ def find_bulk_interface(device, descriptor_string, logging):
     return None
 
 
-def trigger_bootloader(vid, pid, chip, logging, serial=None):
+def trigger_bootloader(vid, pid, chip, logging, reset_only, serial=None):
     if serial is not None:
         device = usb.core.find(idVendor=vid, idProduct=pid, serial_number=serial)
         if device is None:
@@ -105,10 +103,7 @@ def trigger_bootloader(vid, pid, chip, logging, serial=None):
     # Find the out endpoint
     out_endpoint = None
     for endpoint in bulk_interface:
-        if (
-            usb.util.endpoint_direction(endpoint.bEndpointAddress)
-            == usb.util.ENDPOINT_OUT
-        ):
+        if (usb.util.endpoint_direction(endpoint.bEndpointAddress) == usb.util.ENDPOINT_OUT):
             out_endpoint = endpoint
             break
     if out_endpoint is None:
@@ -118,15 +113,37 @@ def trigger_bootloader(vid, pid, chip, logging, serial=None):
     # Find the in endpoint
     in_endpoint = None
     for endpoint in bulk_interface:
-        if (
-            usb.util.endpoint_direction(endpoint.bEndpointAddress)
-            == usb.util.ENDPOINT_IN
-        ):
+        if (usb.util.endpoint_direction(endpoint.bEndpointAddress) == usb.util.ENDPOINT_IN):
             in_endpoint = endpoint
             break
     if in_endpoint is None:
         logging.error("IN endpoint not found")
         return
+
+    if reset_only:
+        if chip == "nrf53":
+            logging.info("Trying to reset nRF53...")
+            try:
+                out_endpoint.write(RESET_NRF53)
+                logging.debug("Data sent successfully.")
+            except usb.core.USBError as e:
+                logging.error(f"Failed to send data: {e}")
+                return
+        else:
+            logging.info("Trying to reset nRF91...")
+            try:
+                out_endpoint.write(RESET_NRF91)
+                logging.debug("Data sent successfully.")
+            except usb.core.USBError as e:
+                logging.error(f"Failed to send data: {e}")
+                return
+            # Read the response
+            try:
+                data = in_endpoint.read(in_endpoint.wMaxPacketSize)
+                logging.debug(f"Response: {data}")
+            except usb.core.USBError as e:
+                logging.error(f"Failed to read data: {e}")
+        return serial_number
 
     # Send the command to trigger the bootloader
     if chip == "nrf53":
@@ -215,7 +232,7 @@ def detect_family_from_zip(zip_file, logging):
     return None
 
 
-def main(args, logging=default_logging):
+def main(args, reset_only, logging=default_logging):
     # if logging does not containt .error function, map it to .err
     if not hasattr(logging, "error"):
         logging.debug = logging.dbg
@@ -225,7 +242,7 @@ def main(args, logging=default_logging):
 
     # determine chip family
     chip = args.chip
-    if args.image is not None:
+    if hasattr(args, 'image') and args.image is not None:
         # if image is provided, try to determine chip family from image
         chip = detect_family_from_zip(args.image, logging)
         if chip is None:
@@ -238,19 +255,23 @@ def main(args, logging=default_logging):
         logging.error("Invalid chip")
         sys.exit(1)
 
-    serial_number = trigger_bootloader(args.vid, args.pid, chip, logging, args.serial)
+    serial_number = trigger_bootloader(args.vid, args.pid, chip, logging, reset_only, args.serial)
     if serial_number is not None:
-        logging.info(f"{chip} on {serial_number} is now in bootloader mode")
+        if reset_only:
+            logging.info(f"{chip} on {serial_number} has been reset")
+        else:
+            logging.info(f"{chip} on {serial_number} is now in bootloader mode")
     else:
         sys.exit(1)
 
     # Only continue if an image file is provided
-    if args.image is not None:
+    if hasattr(args, 'image') and args.image is not None:
         perform_dfu(serial_number, args.image, chip, logging)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Thingy91X DFU", allow_abbrev=False)
+    parser.add_argument("--image", type=str, help="application update file")
     add_args_to_parser(parser)
     args = parser.parse_args()
 
@@ -258,7 +279,7 @@ if __name__ == "__main__":
         level=default_logging.DEBUG if args.debug else default_logging.INFO
     )
 
-    main(args, default_logging)
+    main(args, reset_only=False, logging=default_logging)
 
 
 class Thingy91XDFU(WestCommand):
@@ -273,9 +294,28 @@ class Thingy91XDFU(WestCommand):
         parser = parser_adder.add_parser(
             self.name, help=self.help, description=self.description
         )
-        add_args_to_parser(parser, require_image=True)
+        add_args_to_parser(parser)
+        parser.add_argument("image", type=str, help="application update file")
 
         return parser
 
     def do_run(self, args, unknown_args):
-        main(args, logging=west.log)
+        main(args, reset_only=False, logging=west.log)
+
+class Thingy91XReset(WestCommand):
+    def __init__(self):
+        super(Thingy91XReset, self).__init__(
+            "thingy91x-reset",
+            "Thingy:91 X Reset",
+            "Reset Thingy:91 X.",
+        )
+    def do_add_parser(self, parser_adder):
+        parser = parser_adder.add_parser(
+            self.name, help=self.help, description=self.description
+        )
+        add_args_to_parser(parser, default_chip="nrf91")
+
+        return parser
+
+    def do_run(self, args, unknown_args):
+        main(args, reset_only=True, logging=west.log)

@@ -20,4 +20,7 @@ west-commands:
     commands:
       - name: thingy91x-dfu
         class: Thingy91XDFU
-        help: Flash the Thingy:91 with a new firmware
+        help: Flash the Thingy:91 X with a new firmware
+      - name: thingy91x-reset
+        class: Thingy91XReset
+        help: Reset the Thingy:91 X

@@ -11,10 +11,14 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(bulk_commands, CONFIG_BRIDGE_BULK_LOG_LEVEL);
 
-#define ID_DAP_VENDOR14		       (0x80 + 14)
-#define ID_DAP_VENDOR15		       (0x80 + 15)
-#define ID_DAP_VENDOR_NRF53_BOOTLOADER ID_DAP_VENDOR14
-#define ID_DAP_VENDOR_NRF91_BOOTLOADER ID_DAP_VENDOR15
+#define ID_DAP_VENDOR14			(0x80 + 14)
+#define ID_DAP_VENDOR15			(0x80 + 15)
+#define ID_DAP_VENDOR16			(0x80 + 16)
+#define ID_DAP_VENDOR17			(0x80 + 17)
+#define ID_DAP_VENDOR_NRF53_BOOTLOADER	ID_DAP_VENDOR14
+#define ID_DAP_VENDOR_NRF91_BOOTLOADER	ID_DAP_VENDOR15
+#define ID_DAP_VENDOR_NRF53_RESET	ID_DAP_VENDOR16
+#define ID_DAP_VENDOR_NRF91_RESET	ID_DAP_VENDOR17
 
 #define NRF91_RESET_DURATION K_MSEC(100)
 #define NRF91_BUTTON1_DURATION K_MSEC(1000)
@@ -26,6 +30,9 @@ static const struct gpio_dt_spec button1_pin =
 
 static void nrf91_bootloader_work_handler(struct k_work *work);
 K_WORK_DELAYABLE_DEFINE(nrf91_bootloader_work, nrf91_bootloader_work_handler);
+
+static void nrf91_reset_work_handler(struct k_work *work);
+K_WORK_DELAYABLE_DEFINE(nrf91_reset_work, nrf91_reset_work_handler);
 
 static void nrf91_bootloader_work_handler(struct k_work *work)
 {
@@ -52,6 +59,22 @@ static void nrf91_bootloader_work_handler(struct k_work *work)
 	gpio_pin_configure_dt(&button1_pin, GPIO_DISCONNECTED);
 }
 
+static void nrf91_reset_work_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (!(reset_pin.port && device_is_ready(reset_pin.port))) {
+		LOG_ERR("reset pin not available");
+		return;
+	}
+
+	/* assert both reset and button signals */
+	gpio_pin_configure_dt(&reset_pin, GPIO_OUTPUT_LOW);
+	/* wait for reset to be registered */
+	k_sleep(NRF91_RESET_DURATION);
+	gpio_pin_configure_dt(&reset_pin, GPIO_DISCONNECTED);
+}
+
 /* The is a placeholder implementation until proper CMSIS-DAP support is available. */
 size_t dap_execute_cmd(uint8_t *in, uint8_t *out)
 {
@@ -63,7 +86,7 @@ size_t dap_execute_cmd(uint8_t *in, uint8_t *out)
 		ret = bootmode_set(BOOT_MODE_TYPE_BOOTLOADER);
 		if (ret) {
 			LOG_ERR("Failed to set boot mode");
-			return 0;
+			goto error;
 		}
 		sys_reboot(SYS_REBOOT_WARM);
 	}
@@ -76,7 +99,19 @@ size_t dap_execute_cmd(uint8_t *in, uint8_t *out)
 		out[1] = 0x00;
 		return 2;
 	}
+	if (in[0] == ID_DAP_VENDOR_NRF53_RESET) {
+		sys_reboot(SYS_REBOOT_WARM);
+	}
+	if (in[0] == ID_DAP_VENDOR_NRF91_RESET) {
+		if (!k_work_busy_get(&nrf91_reset_work.work)) {
+			k_work_reschedule(&nrf91_reset_work, K_NO_WAIT);
+		}
+		out[0] = in[0];
+		out[1] = 0x00;
+		return 2;
+	}
 
+error:
 	/* default reply: command failed */
 	out[0] = in[0];
 	out[1] = 0xFF;
