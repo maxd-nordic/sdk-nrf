@@ -7,6 +7,7 @@
 #include <zephyr/retention/bootmode.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/drivers/gpio.h>
+#include <dk_buttons_and_leds.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(bulk_commands, CONFIG_BRIDGE_BULK_LOG_LEVEL);
@@ -117,3 +118,26 @@ error:
 	out[1] = 0xFF;
 	return 2;
 }
+
+#if defined(CONFIG_DK_LIBRARY)
+static void button_handler(uint32_t button_states, uint32_t has_changed)
+{
+	if (has_changed & button_states & DK_BTN1_MSK) {
+		if (!k_work_busy_get(&nrf91_reset_work.work)) {
+			k_work_reschedule(&nrf91_reset_work, K_NO_WAIT);
+		}
+	}
+}
+
+static int button_handling_init(void)
+{
+	int err = dk_buttons_init(button_handler);
+
+	if (err) {
+		LOG_ERR("dk_buttons_init, error: %d", err);
+	}
+	return 0;
+}
+
+SYS_INIT(button_handling_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
+#endif /* defined(CONFIG_DK_LIBRARY) */
