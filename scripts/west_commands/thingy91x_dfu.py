@@ -56,13 +56,12 @@ def find_bulk_interface(device, descriptor_string, logging):
     return None
 
 
-def trigger_bootloader(vid, pid, chip, logging, reset_only, serial=None):
-    if serial is not None:
-        device = usb.core.find(idVendor=vid, idProduct=pid, serial_number=serial)
+def trigger_bootloader(vid, pid, chip, logging, reset_only, serial_number=None):
+    if serial_number is not None:
+        device = usb.core.find(idVendor=vid, idProduct=pid, serial_number=serial_number)
         if device is None:
-            logging.error(f"Device with serial number {serial} not found")
+            logging.error(f"Device with serial number {serial_number} not found")
             return
-        serial_number = serial
     else:
         # Print serial numbers if multiple devices are found
         devices = list(usb.core.find(find_all=True, idVendor=vid, idProduct=pid))
@@ -145,6 +144,24 @@ def trigger_bootloader(vid, pid, chip, logging, reset_only, serial=None):
                 logging.error(f"Failed to read data: {e}")
         return serial_number
 
+    # for nrf91, check if the first serial port of the device is available
+    # for nrf53, the device will re-enumerate anyway
+    if chip == "nrf91":
+        found_ports = []
+        for port in serial.tools.list_ports.comports():
+            if port.serial_number == serial_number:
+                found_ports.append(port.device)
+        if len(found_ports) != 2:
+            logging.error("Serial ports not found")
+            sys.exit(1)
+        found_ports.sort()
+        try:
+            with serial.Serial(found_ports[0], 115200, timeout=1) as ser:
+                logging.debug("Serial port opened")
+        except serial.SerialException as e:
+            logging.error(f"Failed to open serial port, do you have a serial terminal open? {e}")
+            sys.exit(1)
+
     # Send the command to trigger the bootloader
     if chip == "nrf53":
         logging.info("Trying to put nRF53 in bootloader mode...")
@@ -172,7 +189,7 @@ def trigger_bootloader(vid, pid, chip, logging, reset_only, serial=None):
     return serial_number
 
 
-def perform_dfu(serial_number, image, chip, logging):
+def perform_dfu(pid, vid, serial_number, image, chip, logging):
     # extract the hexadecimal part of the serial number
     match = re.search(r"(THINGY91X_)?([A-F0-9]+)", serial_number)
     if match is None:
@@ -180,7 +197,7 @@ def perform_dfu(serial_number, image, chip, logging):
         sys.exit(1)
     serial_number_digits = match.group(2)
 
-    # Find the corresponding serial port
+    # find the corresponding serial port
     for _ in range(10):
         port_info = None
         for port_info in serial.tools.list_ports.comports():
@@ -233,7 +250,7 @@ def detect_family_from_zip(zip_file, logging):
 
 
 def main(args, reset_only, logging=default_logging):
-    # if logging does not containt .error function, map it to .err
+    # if logging does not contain .error function, map it to .err
     if not hasattr(logging, "error"):
         logging.debug = logging.dbg
         logging.info = logging.inf
@@ -266,7 +283,7 @@ def main(args, reset_only, logging=default_logging):
 
     # Only continue if an image file is provided
     if hasattr(args, 'image') and args.image is not None:
-        perform_dfu(serial_number, args.image, chip, logging)
+        perform_dfu(args.pid, args.vid, serial_number, args.image, chip, logging)
 
 
 if __name__ == "__main__":
@@ -295,7 +312,8 @@ class Thingy91XDFU(WestCommand):
             self.name, help=self.help, description=self.description
         )
         add_args_to_parser(parser)
-        parser.add_argument("image", type=str, help="application update file")
+        parser.add_argument("--image", type=str, help="application update file",
+			    default="build/zephyr/dfu_application.zip")
 
         return parser
 
