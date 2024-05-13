@@ -5,8 +5,10 @@
  */
 
 #include <zephyr/kernel.h>
+#include <modem/nrf_modem_lib.h>
 
 int main(void)
 {
+	nrf_modem_lib_init();
 	return 0;
 }

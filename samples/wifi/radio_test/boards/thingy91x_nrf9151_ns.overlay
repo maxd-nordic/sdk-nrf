@@ -4,3 +4,19 @@
  */
 
 #include <thingy91x_wifi.dtsi>
+
+&accelerometer_lp {
+	status = "okay";
+};
+
+&magnetometer {
+	status = "okay";
+};
+
+&accelerometer_hp {
+	status = "okay";
+};
+
+&bme680 {
+	status = "okay";
+};
