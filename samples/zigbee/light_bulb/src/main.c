@@ -46,12 +46,12 @@
 #define BULB_INIT_BASIC_MANUF_NAME      "Nordic"
 
 /* Model number assigned by manufacturer (32-bytes long string). */
-#define BULB_INIT_BASIC_MODEL_ID        "Dimable_Light_v0.1"
+#define BULB_INIT_BASIC_MODEL_ID        "Dimmable_Light_v0.2"
 
 /* First 8 bytes specify the date of manufacturer of the device
  * in ISO 8601 format (YYYYMMDD). The rest (8 bytes) are manufacturer specific.
  */
-#define BULB_INIT_BASIC_DATE_CODE       "20200329"
+#define BULB_INIT_BASIC_DATE_CODE       "20240423"
 
 /* Type of power sources available for the device.
  * For possible values see section 3.2.2.2.8 of ZCL specification.
@@ -77,7 +77,7 @@
 #define BULB_LED                        DK_LED4
 
 /* Button used to enter the Bulb into the Identify mode. */
-#define IDENTIFY_MODE_BUTTON            DK_BTN4_MSK
+#define IDENTIFY_MODE_BUTTON            DK_BTN1_MSK
 
 /* Use onboard led4 to act as a light bulb.
  * The app.overlay file has this at node label "pwm_led3" in /pwmleds.
@@ -90,8 +90,7 @@ static const struct pwm_dt_spec led_pwm = PWM_DT_SPEC_GET(PWM_DK_LED4_NODE);
 #error "Choose supported PWM driver"
 #endif
 
-/* Led PWM period, calculated for 100 Hz signal - in microseconds. */
-#define LED_PWM_PERIOD_US               (USEC_PER_SEC / 100U)
+#define LED_PWM_PERIOD_US               led_pwm.period
 
 #ifndef ZB_ROUTER_ROLE
 #error Define ZB_ROUTER_ROLE to compile router source code.
@@ -273,7 +272,7 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level)
 {
 	uint32_t pulse = brightness_level * LED_PWM_PERIOD_US / 255U;
 
-	if (pwm_set_dt(&led_pwm, PWM_USEC(LED_PWM_PERIOD_US), PWM_USEC(pulse))) {
+	if (pwm_set_dt(&led_pwm, LED_PWM_PERIOD_US, pulse)) {
 		LOG_ERR("Pwm led 4 set fails:\n");
 		return;
 	}
