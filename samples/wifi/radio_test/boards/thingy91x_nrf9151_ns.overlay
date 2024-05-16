@@ -9,10 +9,6 @@
 	status = "okay";
 };
 
-&magnetometer {
-	status = "okay";
-};
-
 &accelerometer_hp {
 	status = "okay";
 };
