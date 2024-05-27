@@ -9,6 +9,8 @@
 #include <zephyr/settings/settings.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/device.h>
 
 #define MODULE file_config
 #include "module_state_event.h"
@@ -30,6 +32,9 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_BRIDGE_MSC_LOG_LEVEL);
 
 #define SETTINGS_DISP_NAME_MAX_LEN sizeof(union cfg_opt_display_name_len)
 #define SETTINGS_VALUE_MAX_LEN sizeof(union cfg_opt_value_len)
+
+/* VDD_RF_FE_SR_EN 0.18*/
+const struct device *gpio0_dev = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
 /* List of configuration options
  * All options are treated as strings.
@@ -125,8 +130,10 @@ static bool ble_enable_opt_cb(char *opt)
 
 	if (strcmp(opt, "0") == 0) {
 		cmd = BLE_CTRL_DISABLE;
+		gpio_pin_configure(gpio0_dev, 18, GPIO_DISCONNECTED);
 	} else if (strcmp(opt, "1") == 0) {
 		cmd = BLE_CTRL_ENABLE;
+		gpio_pin_configure(gpio0_dev, 18, GPIO_OUTPUT_LOW);
 	} else {
 		LOG_WRN("Unrecognized ble_enable_opt: %s", opt);
 		return false;
