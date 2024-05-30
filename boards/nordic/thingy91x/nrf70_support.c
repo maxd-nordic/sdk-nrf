@@ -19,7 +19,7 @@ static const struct device *wifi_regulator = DEVICE_DT_GET(DT_NODELABEL(reg_wifi
 static const struct gpio_dt_spec ldsw_rf_fe_sr_en = {
 	.port = DEVICE_DT_GET(DT_PARENT(DT_NODELABEL(ldsw_rf_fe_sr_en))),
 	.pin = 1,
-	.dt_flags = GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN | GPIO_PULL_UP,
+	.dt_flags = GPIO_ACTIVE_HIGH,
 };
 
 /* Enable the regulator and set the GPIO pin to enable the RF frontend */
