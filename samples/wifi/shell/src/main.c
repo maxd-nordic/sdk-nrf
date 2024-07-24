@@ -46,6 +46,9 @@ int init_usb(void)
 }
 #endif
 
+#include <fw_info.h>
+#include <bl_storage.h>
+#include <ncs_commit.h>
 
 int main(void)
 {
@@ -99,6 +102,12 @@ int main(void)
 
 	net_config_init_app(dev, "Initializing network");
 #endif
+
+	const struct fw_info *s0_info = fw_info_find(s0_address_read());
+	const struct fw_info *s1_info = fw_info_find(s1_address_read());
+
+	printk("S0: %u, S1: %u, app: " NCS_COMMIT_STRING "\n",
+			   s0_info->version, s1_info->version);
 
 	return 0;
 }
