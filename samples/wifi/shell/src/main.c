@@ -15,29 +15,6 @@
 #endif
 #include <zephyr/device.h>
 #include <zephyr/net/net_config.h>
-#ifdef CONFIG_USB_DEVICE_STACK
-#include <zephyr/usb/usb_device.h>
-#endif
-
-#if defined(CONFIG_USB_DEVICE_STACK) || defined(CONFIG_SLIP)
-static struct in_addr addr = { { { 192, 0, 2, 1 } } };
-static struct in_addr mask = { { { 255, 255, 255, 0 } } };
-#endif /* CONFIG_USB_DEVICE_STACK || CONFIG_SLIP */
-
-#ifdef CONFIG_USB_DEVICE_STACK
-int init_usb(void)
-{
-	int ret;
-
-	ret = usb_enable(NULL);
-	if (ret != 0) {
-		printk("Cannot enable USB (%d)", ret);
-		return ret;
-	}
-
-	return 0;
-}
-#endif
 
 
 int main(void)
@@ -48,22 +25,6 @@ int main(void)
 			       NRF_CLOCK_HFCLK_DIV_1);
 #endif
 	printk("Starting %s with CPU frequency: %d MHz\n", CONFIG_BOARD, SystemCoreClock/MHZ(1));
-
-#ifdef CONFIG_USB_DEVICE_STACK
-	init_usb();
-
-	/* Redirect static IP address to netusb*/
-	const struct device *usb_dev = device_get_binding("eth_netusb");
-	struct net_if *iface = net_if_lookup_by_dev(usb_dev);
-
-	if (!iface) {
-		printk("Cannot find network interface: %s", "eth_netusb");
-		return -1;
-	}
-
-	net_if_ipv4_addr_add(iface, &addr, NET_ADDR_MANUAL, 0);
-	net_if_ipv4_set_netmask_by_addr(iface, &addr, &mask);
-#endif
 
 #ifdef CONFIG_SLIP
 	const struct device *slip_dev = device_get_binding(CONFIG_SLIP_DRV_NAME);

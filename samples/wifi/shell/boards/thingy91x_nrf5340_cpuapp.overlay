@@ -3,4 +3,26 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
- #include <thingy91x_nrf53_wifi.dtsi>
+#include <thingy91x_nrf53_wifi.dtsi>
+
+&usbd {
+	compatible = "nordic,nrf-usbd";
+	status = "okay";
+
+	cdc_acm_uart: cdc_acm_uart {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+		zephyr,shell-uart = &cdc_acm_uart;
+		zephyr,uart-mcumgr = &cdc_acm_uart;
+		zephyr,bt-mon-uart = &cdc_acm_uart;
+		zephyr,bt-c2h-uart = &cdc_acm_uart;
+		nordic,pm-ext-flash = &flash_ext;
+	};
+};
+
+/delete-node/ &rtt0;
