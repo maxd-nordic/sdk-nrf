@@ -24,4 +24,6 @@ target_sources_ifdef(CONFIG_NRF700X_PROMISC_DATA_RX
 	PRIVATE
 	src/wifi_promiscuous_shell.c)
 
+target_sources_ifdef(CONFIG_RETENTION_BOOT_MODE app PRIVATE src/boot_mode_shell.c)
+
 target_sources(app PRIVATE src/main.c)
