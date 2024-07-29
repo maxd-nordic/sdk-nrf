@@ -44,6 +44,9 @@ config DOMAIN_CPUNET_BOARD
 	  another board. For example hci_rpmsg on the nRF5340_cpunet for
 	  Bluetooth applications.
 
+config BOARD_WAIT_FOR_FLASH
+	bool "Wait for nrf91 to release flash"
+
 endif
 
 if BOARD_THINGY91X_NRF5340_CPUNET
