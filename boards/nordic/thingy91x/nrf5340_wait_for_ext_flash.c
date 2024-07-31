@@ -13,6 +13,7 @@
 LOG_MODULE_REGISTER(thingy91x_nrf5340_cpuapp, CONFIG_LOG_DEFAULT_LEVEL);
 
 const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
+const struct device *gpio1 = DEVICE_DT_GET(DT_NODELABEL(gpio1));
 
 #define CHECKERR if (err) {printk("GPIO error: %d\n", err); return err;}
 
