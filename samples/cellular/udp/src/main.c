@@ -10,6 +10,14 @@
 #include <modem/lte_lc.h>
 #include <modem/nrf_modem_lib.h>
 #include <nrf_modem_at.h>
+#include <zephyr/drivers/gpio.h>
+#include <nrf.h>
+#include <nrfx.h>
+#include <nrfx_spim.h>
+#include <nrfx_twim.h>
+#include <nrfx_uarte.h>
+
+const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
 #define UDP_IP_HEADER_SIZE 28
 
@@ -157,6 +165,24 @@ static int socket_connect(void)
 int main(void)
 {
 	int err;
+
+	nrf_uarte_disable(NRF_UARTE0_NS);
+	nrf_uarte_disable(NRF_UARTE1_NS);
+	nrf_twim_disable(NRF_TWIM2_NS);
+	nrf_spim_disable(NRF_SPIM3_NS);
+
+	for (int i = 0; i < 32; ++i) {
+		NRF_P0_NS->PIN_CNF[i] = 2;
+	}
+	NRF_P0_NS->PIN_CNF[3] = 6;   // EXP_BRD_CTRL	pull-down
+	NRF_P0_NS->PIN_CNF[10] = 14; // BMI270_CS	pull-up
+	NRF_P0_NS->PIN_CNF[12] = 14; // FLASH_CS	pull-up
+	NRF_P0_NS->PIN_CNF[17] = 14; // WIFI_CS		pull-up
+	NRF_P0_NS->PIN_CNF[26] = 14; // Button 1	pull-up
+	NRF_P0_NS->PIN_CNF[29] = 6;  // LED_R		pull-down
+	NRF_P0_NS->PIN_CNF[30] = 6;  // LED_B		pull-down
+	NRF_P0_NS->PIN_CNF[31] = 6;  // LED_G		pull-down
+
 
 	printk("UDP sample has started\n");
 
