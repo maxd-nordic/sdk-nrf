@@ -10,7 +10,7 @@
 	};
 };
 &gpiote {
-	interrupts = <6 NRF_DEFAULT_IRQ_PRIORITY>;
+	interrupts = <13 NRF_DEFAULT_IRQ_PRIORITY>;
 };
 / {
 	chosen {
