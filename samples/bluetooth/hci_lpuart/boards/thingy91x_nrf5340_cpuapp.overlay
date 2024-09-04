@@ -1,0 +1,23 @@
+&uart1 {
+	current-speed = <1000000>;
+	status = "okay";
+
+	lpuart: nrf-sw-lpuart {
+		compatible = "nordic,nrf-sw-lpuart";
+		status = "okay";
+		req-pin = <31>;
+		rdy-pin = <30>;
+	};
+};
+&gpiote {
+	interrupts = <6 NRF_DEFAULT_IRQ_PRIORITY>;
+};
+/ {
+	chosen {
+		zephyr,bt-c2h-uart=&lpuart;
+	};
+};
+&uart0 {
+	status = "disabled";
+};
+
