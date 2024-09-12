@@ -15,6 +15,136 @@
 #include <modem/lte_lc.h>
 #include <modem/nrf_modem_lib.h>
 #include <date_time.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/sensor/npm1300_charger.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/drivers/regulator.h>
+
+const struct device *charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_charger));
+const struct device *reg_3v3 = DEVICE_DT_GET(DT_NODELABEL(reg_3v3));
+const struct device *pmic = DEVICE_DT_GET(DT_NODELABEL(pmic_main));
+const struct device *uart_dev = DEVICE_DT_GET(DT_NODELABEL(uart0));
+int mfd_npm1300_reg_write(const struct device *dev, uint8_t base, uint8_t offset, uint8_t data);
+static int ttff_test_force_cold_start(void);
+static void ttff_test_start_work_fn(struct k_work *item);
+
+// define work item for UART
+static void uart_work_handler(struct k_work *work);
+K_WORK_DEFINE(uart_work, uart_work_handler);
+static char last_pressed;
+
+static void uart_work_handler(struct k_work *work)
+{
+	switch (last_pressed) {
+	case 's':
+		/* turn charging on */
+		mfd_npm1300_reg_write(pmic, 0x03, 0x04, 0x01);
+		printk("Charging on\n");
+		break;
+	case 'd':
+		/* turn charging off */
+		mfd_npm1300_reg_write(pmic, 0x03, 0x05, 0x01);
+		printk("Charging off\n");
+		break;
+	case 'f':
+		nrf_modem_gnss_stop();
+		ttff_test_force_cold_start();
+		ttff_test_start_work_fn(NULL);
+		printk("START GNSS\n");
+		break;
+	case 'g':
+		nrf_modem_gnss_stop();
+		ttff_test_force_cold_start();
+		printk("STOP GNSS\n");
+		break;
+	case 'h':
+		/* toggle 3v3 regulator */
+		if (regulator_is_enabled(reg_3v3)) {
+			regulator_disable(reg_3v3);
+			printk("3V3 OFF\n");
+		} else {
+			regulator_enable(reg_3v3);
+			printk("3V3 ON\n");
+		}
+		break;
+	case 'j':
+		/* turn charger LED to auto*/
+		mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x01);
+		printk("LED AUTO\n");
+		break;
+	case 'k':
+		/* turn charger LED on*/
+		mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x02);
+		mfd_npm1300_reg_write(pmic, 0x0A, 0x05, 0x01);
+		printk("LED ON\n");
+		break;
+	case 'l':
+		/* turn charger LED off*/
+		mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x02);
+		mfd_npm1300_reg_write(pmic, 0x0A, 0x06, 0x01);
+		printk("LED OFF\n");
+		break;
+	default:
+		break;
+	}
+	last_pressed = 0;
+}
+
+void print_charger_status(void)
+{
+	double voltage = 0;
+	double current = 0;
+	double temperature = 0;
+	int32_t chg_status = 0;
+	struct sensor_value value = {0};
+	int ret;
+
+	if (!device_is_ready(charger)) {
+		printk("Charger device not ready.\n");
+		return;
+	}
+
+	ret = sensor_sample_fetch(charger);
+	if (ret < 0) {
+		return;
+	}
+
+	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_VOLTAGE, &value);
+	voltage = (float)value.val1 + ((float)value.val2 / 1000000);
+
+	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_TEMP, &value);
+	temperature = (float)value.val1 + ((float)value.val2 / 1000000);
+
+	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_AVG_CURRENT, &value);
+	current = (float)value.val1 + ((float)value.val2 / 1000000);
+
+	sensor_channel_get(charger, SENSOR_CHAN_NPM1300_CHARGER_STATUS, &value);
+	chg_status = value.val1;
+
+	printk("Charger: %.3f V, %.3f A, %.2f C, BCHGCHARGESTATUS: 0x%02x\n", voltage, current,
+	       temperature, chg_status);
+}
+
+void uart_cb(const struct device *dev, void *user_data)
+{
+	while (uart_irq_update(dev) && uart_irq_is_pending(dev)) {
+		if (uart_irq_rx_ready(dev)) {
+			uint8_t buf[1];
+			int recv_len = uart_fifo_read(dev, buf, sizeof(buf));
+			if (recv_len > 0) {
+				// Process received byte
+				if (last_pressed) {
+					printk("NOT READY, ignoring: %c\n", buf[0]);
+					continue;
+				}
+				printk("Received: %c\n", buf[0]);
+				last_pressed = buf[0];
+				k_work_submit(&uart_work);
+			}
+		}
+	}
+}
 
 LOG_MODULE_REGISTER(gnss_sample, CONFIG_GNSS_SAMPLE_LOG_LEVEL);
 
@@ -45,6 +175,9 @@ static struct k_work ttff_test_start_work;
 static uint32_t time_to_fix;
 #endif
 
+static uint32_t time_to_first_fix;
+static bool continuous_fix = false;
+
 static const char update_indicator[] = {'\\', '|', '/', '-'};
 
 static struct nrf_modem_gnss_pvt_data_frame last_pvt;
@@ -70,16 +203,16 @@ static struct k_poll_event events[2] = {
 };
 
 BUILD_ASSERT(IS_ENABLED(CONFIG_LTE_NETWORK_MODE_LTE_M_GPS) ||
-	     IS_ENABLED(CONFIG_LTE_NETWORK_MODE_NBIOT_GPS) ||
-	     IS_ENABLED(CONFIG_LTE_NETWORK_MODE_LTE_M_NBIOT_GPS),
+		     IS_ENABLED(CONFIG_LTE_NETWORK_MODE_NBIOT_GPS) ||
+		     IS_ENABLED(CONFIG_LTE_NETWORK_MODE_LTE_M_NBIOT_GPS),
 	     "CONFIG_LTE_NETWORK_MODE_LTE_M_GPS, "
 	     "CONFIG_LTE_NETWORK_MODE_NBIOT_GPS or "
 	     "CONFIG_LTE_NETWORK_MODE_LTE_M_NBIOT_GPS must be enabled");
 
 BUILD_ASSERT((sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LATITUDE) == 1 &&
 	      sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LONGITUDE) == 1) ||
-	     (sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LATITUDE) > 1 &&
-	      sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LONGITUDE) > 1),
+		     (sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LATITUDE) > 1 &&
+		      sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LONGITUDE) > 1),
 	     "CONFIG_GNSS_SAMPLE_REFERENCE_LATITUDE and "
 	     "CONFIG_GNSS_SAMPLE_REFERENCE_LONGITUDE must be both either set or empty");
 
@@ -87,7 +220,7 @@ BUILD_ASSERT((sizeof(CONFIG_GNSS_SAMPLE_REFERENCE_LATITUDE) == 1 &&
  * haversine formula.
  */
 static double distance_calculate(double lat1, double lon1,
-				 double lat2, double lon2)
+double lat2, double lon2)
 {
 	double d_lat_rad = (lat2 - lat1) * PI / 180.0;
 	double d_lon_rad = (lon2 - lon1) * PI / 180.0;
@@ -257,7 +390,7 @@ static void agnss_data_get_work_fn(struct k_work *item)
 
 	/* GPS data need is always expected to be present and first in list. */
 	__ASSERT(last_agnss.system_count > 0,
-		 "GNSS system data need not found");
+"GNSS system data need not found");
 	__ASSERT(last_agnss.system[0].system_id == NRF_MODEM_GNSS_SYSTEM_GPS,
 		 "GPS data need not found");
 
@@ -319,17 +452,6 @@ static void agnss_data_get_work_fn(struct k_work *item)
 }
 #endif /* !CONFIG_GNSS_SAMPLE_ASSISTANCE_NONE */
 
-#if defined(CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST)
-static void ttff_test_got_fix_work_fn(struct k_work *item)
-{
-	LOG_INF("Time to fix: %u", time_to_fix);
-	if (time_blocked > 0) {
-		LOG_INF("Time GNSS was blocked by LTE: %u", time_blocked);
-	}
-	print_distance_from_reference(&last_pvt);
-	LOG_INF("Sleeping for %u seconds", CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST_INTERVAL);
-}
-
 static int ttff_test_force_cold_start(void)
 {
 	int err;
@@ -359,6 +481,29 @@ static int ttff_test_force_cold_start(void)
 	}
 
 	return 0;
+}
+
+static void ttff_test_start_work_fn(struct k_work *item)
+{
+	LOG_INF("Starting GNSS");
+	if (nrf_modem_gnss_start() != 0) {
+		LOG_ERR("Failed to start GNSS");
+		return;
+	}
+
+	fix_timestamp = k_uptime_get();
+	time_blocked = 0;
+}
+
+#if defined(CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST)
+static void ttff_test_got_fix_work_fn(struct k_work *item)
+{
+	LOG_INF("Time to fix: %u", time_to_fix);
+	if (time_blocked > 0) {
+		LOG_INF("Time GNSS was blocked by LTE: %u", time_blocked);
+	}
+	print_distance_from_reference(&last_pvt);
+	LOG_INF("Sleeping for %u seconds", CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST_INTERVAL);
 }
 
 #if defined(CONFIG_GNSS_SAMPLE_ASSISTANCE_NRF_CLOUD)
@@ -392,12 +537,12 @@ static void ttff_test_prepare_work_fn(struct k_work *item)
 	if (IS_ENABLED(CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST_COLD_START)) {
 		/* All A-GNSS data is always requested before GNSS is started. */
 		last_agnss.data_flags =
-			NRF_MODEM_GNSS_AGNSS_GPS_UTC_REQUEST |
-			NRF_MODEM_GNSS_AGNSS_KLOBUCHAR_REQUEST |
-			NRF_MODEM_GNSS_AGNSS_NEQUICK_REQUEST |
-			NRF_MODEM_GNSS_AGNSS_GPS_SYS_TIME_AND_SV_TOW_REQUEST |
-			NRF_MODEM_GNSS_AGNSS_POSITION_REQUEST |
-			NRF_MODEM_GNSS_AGNSS_INTEGRITY_REQUEST;
+					NRF_MODEM_GNSS_AGNSS_GPS_UTC_REQUEST |
+					NRF_MODEM_GNSS_AGNSS_KLOBUCHAR_REQUEST |
+					NRF_MODEM_GNSS_AGNSS_NEQUICK_REQUEST |
+					NRF_MODEM_GNSS_AGNSS_GPS_SYS_TIME_AND_SV_TOW_REQUEST |
+					NRF_MODEM_GNSS_AGNSS_POSITION_REQUEST |
+					NRF_MODEM_GNSS_AGNSS_INTEGRITY_REQUEST;
 		last_agnss.system_count = 1;
 		last_agnss.system[0].sv_mask_ephe = 0xffffffff;
 		last_agnss.system[0].sv_mask_alm = 0xffffffff;
@@ -422,17 +567,7 @@ static void ttff_test_prepare_work_fn(struct k_work *item)
 	k_work_submit_to_queue(&gnss_work_q, &ttff_test_start_work);
 }
 
-static void ttff_test_start_work_fn(struct k_work *item)
-{
-	LOG_INF("Starting GNSS");
-	if (nrf_modem_gnss_start() != 0) {
-		LOG_ERR("Failed to start GNSS");
-		return;
-	}
 
-	fix_timestamp = k_uptime_get();
-	time_blocked = 0;
-}
 #endif /* CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST */
 
 static void date_time_evt_handler(const struct date_time_evt *evt)
@@ -483,14 +618,14 @@ static int sample_init(void)
 	struct k_work_queue_config cfg = {
 		.name = "gnss_work_q",
 		.no_yield = false
-	};
+};
 
 	k_work_queue_start(
-		&gnss_work_q,
-		gnss_workq_stack_area,
-		K_THREAD_STACK_SIZEOF(gnss_workq_stack_area),
-		GNSS_WORKQ_THREAD_PRIORITY,
-		&cfg);
+			   &gnss_work_q,
+			   gnss_workq_stack_area,
+			   K_THREAD_STACK_SIZEOF(gnss_workq_stack_area),
+			   GNSS_WORKQ_THREAD_PRIORITY,
+			   &cfg);
 #endif /* !CONFIG_GNSS_SAMPLE_ASSISTANCE_NONE || CONFIG_GNSS_SAMPLE_MODE_TTFF_TEST */
 
 #if !defined(CONFIG_GNSS_SAMPLE_ASSISTANCE_NONE)
@@ -628,8 +763,8 @@ static bool output_paused(void)
 
 static void print_satellite_stats(struct nrf_modem_gnss_pvt_data_frame *pvt_data)
 {
-	uint8_t tracked   = 0;
-	uint8_t in_fix    = 0;
+	uint8_t tracked = 0;
+	uint8_t in_fix = 0;
 	uint8_t unhealthy = 0;
 
 	for (int i = 0; i < NRF_MODEM_GNSS_MAX_SATELLITES; ++i) {
@@ -646,31 +781,27 @@ static void print_satellite_stats(struct nrf_modem_gnss_pvt_data_frame *pvt_data
 		}
 	}
 
-	printf("Tracking: %2d Using: %2d Unhealthy: %d\n", tracked, in_fix, unhealthy);
+	printk("Tracking: %2d Using: %2d Unhealthy: %d\n", tracked, in_fix, unhealthy);
 }
 
 static void print_fix_data(struct nrf_modem_gnss_pvt_data_frame *pvt_data)
 {
-	printf("Latitude:       %.06f\n", pvt_data->latitude);
-	printf("Longitude:      %.06f\n", pvt_data->longitude);
-	printf("Altitude:       %.01f m\n", (double)pvt_data->altitude);
-	printf("Accuracy:       %.01f m\n", (double)pvt_data->accuracy);
-	printf("Speed:          %.01f m/s\n", (double)pvt_data->speed);
-	printf("Speed accuracy: %.01f m/s\n", (double)pvt_data->speed_accuracy);
-	printf("Heading:        %.01f deg\n", (double)pvt_data->heading);
-	printf("Date:           %04u-%02u-%02u\n",
-	       pvt_data->datetime.year,
-	       pvt_data->datetime.month,
-	       pvt_data->datetime.day);
-	printf("Time (UTC):     %02u:%02u:%02u.%03u\n",
-	       pvt_data->datetime.hour,
-	       pvt_data->datetime.minute,
-	       pvt_data->datetime.seconds,
-	       pvt_data->datetime.ms);
-	printf("PDOP:           %.01f\n", (double)pvt_data->pdop);
-	printf("HDOP:           %.01f\n", (double)pvt_data->hdop);
-	printf("VDOP:           %.01f\n", (double)pvt_data->vdop);
-	printf("TDOP:           %.01f\n", (double)pvt_data->tdop);
+	printk("TTFF:           %u s\n", time_to_first_fix);
+	printk("Latitude:       %.06f\n", pvt_data->latitude);
+	printk("Longitude:      %.06f\n", pvt_data->longitude);
+	printk("Altitude:       %.01f m\n", (double)pvt_data->altitude);
+	printk("Accuracy:       %.01f m\n", (double)pvt_data->accuracy);
+	printk("Speed:          %.01f m/s\n", (double)pvt_data->speed);
+	printk("Speed accuracy: %.01f m/s\n", (double)pvt_data->speed_accuracy);
+	printk("Heading:        %.01f deg\n", (double)pvt_data->heading);
+	printk("Date:           %04u-%02u-%02u\n", pvt_data->datetime.year,
+	       pvt_data->datetime.month, pvt_data->datetime.day);
+	printk("Time (UTC):     %02u:%02u:%02u.%03u\n", pvt_data->datetime.hour,
+	       pvt_data->datetime.minute, pvt_data->datetime.seconds, pvt_data->datetime.ms);
+	printk("PDOP:           %.01f\n", (double)pvt_data->pdop);
+	printk("HDOP:           %.01f\n", (double)pvt_data->hdop);
+	printk("VDOP:           %.01f\n", (double)pvt_data->vdop);
+	printk("TDOP:           %.01f\n", (double)pvt_data->tdop);
 }
 
 int main(void)
@@ -709,6 +840,12 @@ int main(void)
 		LOG_ERR("Failed to initialize and start GNSS");
 		return -1;
 	}
+	if (!device_is_ready(uart_dev)) {
+		printk("UART device is not ready\n");
+	} else {
+		uart_irq_callback_set(uart_dev, uart_cb);
+		uart_irq_rx_enable(uart_dev);
+	}
 
 	fix_timestamp = k_uptime_get();
 
@@ -743,44 +880,52 @@ int main(void)
 					goto handle_nmea;
 				}
 
-				printf("\033[1;1H");
-				printf("\033[2J");
+				printk("\033[1;1H");
+				printk("\033[2J");
 				print_satellite_stats(&last_pvt);
 
 				if (last_pvt.flags & NRF_MODEM_GNSS_PVT_FLAG_DEADLINE_MISSED) {
-					printf("GNSS operation blocked by LTE\n");
+					printk("GNSS operation blocked by LTE\n");
 				}
 				if (last_pvt.flags &
 				    NRF_MODEM_GNSS_PVT_FLAG_NOT_ENOUGH_WINDOW_TIME) {
-					printf("Insufficient GNSS time windows\n");
+					printk("Insufficient GNSS time windows\n");
 				}
 				if (last_pvt.flags & NRF_MODEM_GNSS_PVT_FLAG_SLEEP_BETWEEN_PVT) {
-					printf("Sleep period(s) between PVT notifications\n");
+					printk("Sleep period(s) between PVT notifications\n");
 				}
-				printf("-----------------------------------\n");
+				printk("-----------------------------------\n");
 
 				if (last_pvt.flags & NRF_MODEM_GNSS_PVT_FLAG_FIX_VALID) {
+					if (!continuous_fix) {
+						time_to_first_fix = 
+						(uint32_t)((k_uptime_get() - fix_timestamp) / 1000);
+					}
+					continuous_fix = true;
 					fix_timestamp = k_uptime_get();
 					print_fix_data(&last_pvt);
 					print_distance_from_reference(&last_pvt);
 				} else {
-					printf("Seconds since last fix: %d\n",
+					continuous_fix = false;
+					printk("Seconds since last fix: %d\n",
 					       (uint32_t)((k_uptime_get() - fix_timestamp) / 1000));
 					cnt++;
-					printf("Searching [%c]\n", update_indicator[cnt%4]);
+					printk("Searching [%c]\n", update_indicator[cnt % 4]);
 				}
 
-				printf("\nNMEA strings:\n\n");
+				print_charger_status();
+
+				printk("\nNMEA strings:\n\n");
 			}
 		}
 
-handle_nmea:
+	handle_nmea:
 		if (events[1].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE &&
 		    k_msgq_get(events[1].msgq, &nmea_data, K_NO_WAIT) == 0) {
 			/* New NMEA data available */
 
 			if (!output_paused()) {
-				printf("%s", nmea_data->nmea_str);
+				printk("%s", nmea_data->nmea_str);
 			}
 			k_free(nmea_data);
 		}
