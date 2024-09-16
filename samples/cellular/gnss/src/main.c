@@ -905,6 +905,10 @@ int main(void)
 					fix_timestamp = k_uptime_get();
 					print_fix_data(&last_pvt);
 					print_distance_from_reference(&last_pvt);
+					/* Stop GNSS after getting a fix */
+					nrf_modem_gnss_stop();
+					ttff_test_force_cold_start();
+					printk("STOP GNSS (got fix)\n");
 				} else {
 					continuous_fix = false;
 					printk("Seconds since last fix: %d\n",
