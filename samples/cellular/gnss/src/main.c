@@ -21,9 +21,9 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/regulator.h>
 
-const struct device *charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_charger));
-const struct device *reg_3v3 = DEVICE_DT_GET(DT_NODELABEL(reg_3v3));
-const struct device *pmic = DEVICE_DT_GET(DT_NODELABEL(pmic_main));
+//const struct device *charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_charger));
+//const struct device *reg_3v3 = DEVICE_DT_GET(DT_NODELABEL(reg_3v3));
+//const struct device *pmic = DEVICE_DT_GET(DT_NODELABEL(pmic_main));
 const struct device *uart_dev = DEVICE_DT_GET(DT_NODELABEL(uart0));
 int mfd_npm1300_reg_write(const struct device *dev, uint8_t base, uint8_t offset, uint8_t data);
 static int ttff_test_force_cold_start(void);
@@ -37,16 +37,16 @@ static char last_pressed;
 static void uart_work_handler(struct k_work *work)
 {
 	switch (last_pressed) {
-	case 's':
-		/* turn charging on */
-		mfd_npm1300_reg_write(pmic, 0x03, 0x04, 0x01);
-		printk("Charging on\n");
-		break;
-	case 'd':
-		/* turn charging off */
-		mfd_npm1300_reg_write(pmic, 0x03, 0x05, 0x01);
-		printk("Charging off\n");
-		break;
+	//case 's':
+	//	/* turn charging on */
+	//	mfd_npm1300_reg_write(pmic, 0x03, 0x04, 0x01);
+	//	printk("Charging on\n");
+	//	break;
+	//case 'd':
+	//	/* turn charging off */
+	//	mfd_npm1300_reg_write(pmic, 0x03, 0x05, 0x01);
+	//	printk("Charging off\n");
+	//	break;
 	case 'f':
 		nrf_modem_gnss_stop();
 		ttff_test_force_cold_start();
@@ -58,72 +58,37 @@ static void uart_work_handler(struct k_work *work)
 		ttff_test_force_cold_start();
 		printk("STOP GNSS\n");
 		break;
-	case 'h':
-		/* toggle 3v3 regulator */
-		if (regulator_is_enabled(reg_3v3)) {
-			regulator_disable(reg_3v3);
-			printk("3V3 OFF\n");
-		} else {
-			regulator_enable(reg_3v3);
-			printk("3V3 ON\n");
-		}
-		break;
-	case 'j':
-		/* turn charger LED to auto*/
-		mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x01);
-		printk("LED AUTO\n");
-		break;
-	case 'k':
-		/* turn charger LED on*/
-		mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x02);
-		mfd_npm1300_reg_write(pmic, 0x0A, 0x05, 0x01);
-		printk("LED ON\n");
-		break;
-	case 'l':
-		/* turn charger LED off*/
-		mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x02);
-		mfd_npm1300_reg_write(pmic, 0x0A, 0x06, 0x01);
-		printk("LED OFF\n");
-		break;
+	//case 'h':
+	//	/* toggle 3v3 regulator */
+	//	if (regulator_is_enabled(reg_3v3)) {
+	//		regulator_disable(reg_3v3);
+	//		printk("3V3 OFF\n");
+	//	} else {
+	//		regulator_enable(reg_3v3);
+	//		printk("3V3 ON\n");
+	//	}
+	//	break;
+	//case 'j':
+	//	/* turn charger LED to auto*/
+	//	mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x01);
+	//	printk("LED AUTO\n");
+	//	break;
+	//case 'k':
+	//	/* turn charger LED on*/
+	//	mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x02);
+	//	mfd_npm1300_reg_write(pmic, 0x0A, 0x05, 0x01);
+	//	printk("LED ON\n");
+	//	break;
+	//case 'l':
+	//	/* turn charger LED off*/
+	//	mfd_npm1300_reg_write(pmic, 0x0A, 0x01, 0x02);
+	//	mfd_npm1300_reg_write(pmic, 0x0A, 0x06, 0x01);
+	//	printk("LED OFF\n");
+	//	break;
 	default:
 		break;
 	}
 	last_pressed = 0;
-}
-
-void print_charger_status(void)
-{
-	double voltage = 0;
-	double current = 0;
-	double temperature = 0;
-	int32_t chg_status = 0;
-	struct sensor_value value = {0};
-	int ret;
-
-	if (!device_is_ready(charger)) {
-		printk("Charger device not ready.\n");
-		return;
-	}
-
-	ret = sensor_sample_fetch(charger);
-	if (ret < 0) {
-		return;
-	}
-
-	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_VOLTAGE, &value);
-	voltage = (float)value.val1 + ((float)value.val2 / 1000000);
-
-	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_TEMP, &value);
-	temperature = (float)value.val1 + ((float)value.val2 / 1000000);
-
-	sensor_channel_get(charger, SENSOR_CHAN_GAUGE_AVG_CURRENT, &value);
-	current = (float)value.val1 + ((float)value.val2 / 1000000);
-
-	sensor_channel_get(charger, SENSOR_CHAN_NPM1300_CHARGER_STATUS, &value);
-	chg_status = value.val1;
-
-	printk("Charger: %.3f V, %.3f A, %.2f C, BCHGCHARGESTATUS: 0x%02x\n", voltage, current,
-	       temperature, chg_status);
 }
 
 void uart_cb(const struct device *dev, void *user_data)
@@ -898,7 +863,7 @@ int main(void)
 
 				if (last_pvt.flags & NRF_MODEM_GNSS_PVT_FLAG_FIX_VALID) {
 					if (!continuous_fix) {
-						time_to_first_fix = 
+						time_to_first_fix =
 						(uint32_t)((k_uptime_get() - fix_timestamp) / 1000);
 					}
 					continuous_fix = true;
@@ -916,8 +881,6 @@ int main(void)
 					cnt++;
 					printk("Searching [%c]\n", update_indicator[cnt % 4]);
 				}
-
-				print_charger_status();
 
 				printk("\nNMEA strings:\n\n");
 			}
