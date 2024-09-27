@@ -80,25 +80,25 @@ app:
   region: flash_primary
 
 external_flash:
-  device: GD25LB256E
+  device: GD25LE255E
   address: 0x0
   size: 0x2000000
   span: [mcuboot_secondary]
   region: external_flash
 mcuboot_secondary:
-  device: GD25LB256E
+  device: GD25LE255E
   address: 0x0
   size: 0xD0000
   share_size: [mcuboot_primary]
   region: external_flash
 nonsecure_storage:
-  device: GD25LB256E
+  device: GD25LE255E
   address: 0xD0000
   size: 0x2000
   span: [settings_storage]
   region: external_flash
 settings_storage:
-  device: GD25LB256E
+  device: GD25LE255E
   address: 0xD0000
   size: 0x2000
   region: external_flash
