@@ -8,8 +8,8 @@
 #include "thingy91x_nrf5340_cpuapp_common.dts"
 
 / {
-	model = "Nordic NRF5340 DK NRF5340 Application";
-	compatible = "nordic,nrf5340-dk-nrf5340-cpuapp";
+	model = "Nordic Thingy:91 X NRF5340 Application";
+	compatible = "nordic,thingy91x-nrf5340-cpuapp";
 
 	chosen {
 		zephyr,sram = &sram0_ns;
