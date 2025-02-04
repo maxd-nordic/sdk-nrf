@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
-
+#define CONFIG_MCUBOOT_UTIL_LOG_LEVEL 4
 #include <assert.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -11,9 +11,13 @@
 #include <zephyr/drivers/flash/flash_simulator.h>
 #include "bootutil/image.h"
 #include "bootutil/bootutil.h"
+
 #include "bootutil/boot_hooks.h"
 #include "bootutil/fault_injection_hardening.h"
 #include "flash_map_backend/flash_map_backend.h"
+
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(nrf53_hooks, 4);
 
 #if CONFIG_MCUBOOT_NETWORK_CORE_IMAGE_NUMBER != -1
 /* Sysbuild */
@@ -44,6 +48,7 @@
  */
 int pcd_version_cmp_net(const struct flash_area *fap, struct image_header *hdr)
 {
+	LOG_INF("pcd_version_cmp_net");
 	int err;
 	const struct fw_info *firmware_info;
 	uint32_t version = 0;
@@ -79,6 +84,7 @@ int pcd_version_cmp_net(const struct flash_area *fap, struct image_header *hdr)
 
 int boot_read_image_header_hook(int img_index, int slot, struct image_header *img_head)
 {
+	LOG_INF("boot_read_image_header_hook");
 	if (img_index == NET_CORE_SECONDARY_IMAGE && slot == 0) {
 		img_head->ih_magic = IMAGE_MAGIC;
 		img_head->ih_hdr_size = PM_MCUBOOT_PAD_SIZE;
@@ -98,6 +104,7 @@ int boot_read_image_header_hook(int img_index, int slot, struct image_header *im
 
 fih_ret boot_image_check_hook(int img_index, int slot)
 {
+	LOG_INF("boot_image_check_hook");
 	if (img_index == NET_CORE_SECONDARY_IMAGE && slot == 0) {
 		FIH_RET(FIH_SUCCESS);
 	}
@@ -108,12 +115,14 @@ fih_ret boot_image_check_hook(int img_index, int slot)
 int boot_perform_update_hook(int img_index, struct image_header *img_head,
 		const struct flash_area *area)
 {
+	LOG_INF("boot_perform_update_hook");
 	return BOOT_HOOK_REGULAR;
 }
 
 int boot_read_swap_state_primary_slot_hook(int image_index,
 		struct boot_swap_state *state)
 {
+	LOG_INF("boot_read_swap_state_primary_slot_hook");
 	if (image_index == NET_CORE_SECONDARY_IMAGE) {
 		/* Populate with fake data */
 		state->magic = BOOT_MAGIC_UNSET;
@@ -134,6 +143,7 @@ int boot_read_swap_state_primary_slot_hook(int image_index,
 
 int network_core_update(bool wait)
 {
+	LOG_INF("network_core_update");
 	struct image_header *hdr;
 	static const struct device *mock_flash_dev;
 	void *mock_flash;
@@ -168,6 +178,7 @@ int network_core_update(bool wait)
 int boot_copy_region_post_hook(int img_index, const struct flash_area *area,
 		size_t size)
 {
+	LOG_INF("boot_copy_region_post_hook");
 	if (img_index == NET_CORE_SECONDARY_IMAGE) {
 		return network_core_update(true);
 	}
@@ -178,6 +189,7 @@ int boot_copy_region_post_hook(int img_index, const struct flash_area *area,
 int boot_serial_uploaded_hook(int img_index, const struct flash_area *area,
 		size_t size)
 {
+	LOG_INF("boot_serial_uploaded_hook");
 	if (img_index == NET_CORE_VIRTUAL_PRIMARY_SLOT) {
 		return network_core_update(false);
 	}
@@ -187,6 +199,7 @@ int boot_serial_uploaded_hook(int img_index, const struct flash_area *area,
 
 int boot_reset_request_hook(bool force)
 {
+	LOG_INF("boot_reset_request_hook");
 	ARG_UNUSED(force);
 
 	if (pcd_fw_copy_status_get() == PCD_STATUS_COPY) {

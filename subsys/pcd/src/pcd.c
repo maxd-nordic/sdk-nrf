@@ -240,6 +240,7 @@ static int network_core_update(const void *src_addr, size_t len, bool wait)
 	 * This is needed for the network core to be able to read the
 	 * shared RAM area used for IPC.
 	 */
+	LOG_INF("network_core_update");
 	nrf_spu_extdomain_set(NRF_SPU, 0, true, false);
 
 	return network_core_pcd_cmdset(PCD_CMD_MAGIC_COPY, src_addr, len, wait);
