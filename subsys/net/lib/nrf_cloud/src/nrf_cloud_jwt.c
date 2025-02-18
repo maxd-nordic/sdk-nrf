@@ -228,7 +228,9 @@ static int get_key_from_cred(const int sec_tag, char *const der_out)
 	/* NOTE: Hack, not actually parsing the ASN.1,
 	 * just verifying that key header has the expected format
 	 */
-	if (((der[0] == 0x30) && (der[1] == 0x81) && (der[2] == 0x87)) == false) {
+	if ((((der[0] & 0xFF) == 0x30) &&
+	     ((der[1] & 0xFF) == 0x81) &&
+	     ((der[2] & 0xFF) == 0x87)) == false) {
 		LOG_ERR("Unexpected DER format: 0x%X 0x%X 0x%X", der[0], der[1], der[2]);
 		return -EBADF;
 	}
