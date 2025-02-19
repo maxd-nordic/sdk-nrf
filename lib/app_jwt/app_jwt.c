@@ -305,7 +305,7 @@ static char *jwt_header_create(const uint32_t alg, const uint32_t keyid)
 		goto clean_exit;
 	}
 
-	/* Algorithme: format: always "ES256" */
+	/* Algorithm: format: always "ES256" */
 	if (alg == JWT_ALG_TYPE_ES256) {
 		if (cJSON_AddStringToObjectCS(jwt_hdr, "alg", "ES256") == NULL) {
 			goto clean_exit;
@@ -314,6 +314,7 @@ static char *jwt_header_create(const uint32_t alg, const uint32_t keyid)
 		goto clean_exit;
 	}
 
+#if !IS_ENABLED(CONFIG_APP_JWT_MINIMIZED)
 	/* Keyid: format: sha256 string */
 	/* Get kid: sha256 over public key */
 	size_t olen;
@@ -339,6 +340,7 @@ static char *jwt_header_create(const uint32_t alg, const uint32_t keyid)
 	if (cJSON_AddStringToObjectCS(jwt_hdr, "kid", sha256_str) == NULL) {
 		err = -ENOMEM;
 	}
+#endif /* !CONFIG_APP_JWT_MINIMIZED */
 
 	if (err == 0) {
 		hdr_str = cJSON_PrintUnformatted(jwt_hdr);
@@ -424,6 +426,7 @@ static char *jwt_payload_create(const char *const sub, const char *const aud, ui
 		issue_time = tp.tv_sec;
 	}
 
+#if !IS_ENABLED(CONFIG_APP_JWT_MINIMIZED)
 	/* Issued at : timestamp is seconds */
 	if (cJSON_AddNumberToObjectCS(jwt_pay, "iat", issue_time) == NULL) {
 		err = -ENOMEM;
@@ -451,8 +454,10 @@ static char *jwt_payload_create(const char *const sub, const char *const aud, ui
 			err = -ENOMEM;
 		}
 	}
+#endif /* !CONFIG_APP_JWT_MINIMIZED */
 
 	if (sub != NULL) {
+#if !IS_ENABLED(CONFIG_APP_JWT_MINIMIZED)
 		/* Issuer: format: <hardware_id>.<sub> */
 		char iss_str[JWT_CLAIM_FILED_STR_LENGTH] = {0};
 
@@ -462,6 +467,7 @@ static char *jwt_payload_create(const char *const sub, const char *const aud, ui
 		if (cJSON_AddStringToObjectCS(jwt_pay, "iss", iss_str) == NULL) {
 			err = -ENOMEM;
 		}
+#endif /* !CONFIG_APP_JWT_MINIMIZED */
 
 		/* Subject: format: "user_defined_string" */
 		if (cJSON_AddStringToObjectCS(jwt_pay, "sub", sub) == NULL) {

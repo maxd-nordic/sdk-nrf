@@ -23,6 +23,9 @@ config APP_JWT_VERIFY_SIGNATURE
 config APP_JWT_PRINT_EXPORTED_PUBKEY_DER
 	bool "Print to terminal the DER formatted public key"
 
+config APP_JWT_MINIMIZED
+	bool "Make JWT as short as possible for nRF Cloud Device API"
+
 module=APP_JWT
 module-str=User App JWT
 source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
