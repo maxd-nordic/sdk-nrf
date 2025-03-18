@@ -218,6 +218,11 @@ void date_time_core_init(void)
 	if (!IS_ENABLED(CONFIG_DATE_TIME_AUTO_UPDATE)) {
 		date_time_core_schedule_update();
 	}
+
+#if defined(CONFIG_BOARD_NATIVE_SIM)
+	/* Workaround: cannot really update time on native_sim. */
+	date_time_last_update_uptime = INT64_MAX;
+#endif
 }
 
 int date_time_core_now(int64_t *unix_time_ms)

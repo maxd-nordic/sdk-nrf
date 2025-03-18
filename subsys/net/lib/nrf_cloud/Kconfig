@@ -109,7 +109,7 @@ config NRF_CLOUD_JWT_SOURCE_CUSTOM
 	select TINYCRYPT_CTR_PRNG
 	select TINYCRYPT_AES
 	select CJSON_LIB
-	depends on NEWLIB_LIBC_FLOAT_PRINTF || PICOLIBC_IO_FLOAT
+	depends on NEWLIB_LIBC_FLOAT_PRINTF || PICOLIBC_IO_FLOAT || EXTERNAL_LIBC
 	depends on DATE_TIME
 	help
 	  JWTs are created and signed by the nRF Cloud library, not the modem.
