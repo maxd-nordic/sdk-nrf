@@ -225,6 +225,14 @@ static int get_key_from_cred(const int sec_tag, char *const der_out)
 
 	LOG_DBG("DER size = %u", der_sz);
 
+	/* NOTE: Hack, not actually parsing the ASN.1,
+	 * just verifying that key header has the expected format
+	 */
+	if (((der[0] == 0x30) && (der[1] == 0x81) && (der[2] == 0x87)) == false) {
+		LOG_ERR("Unexpected DER format: 0x%X 0x%X 0x%X", der[0], der[1], der[2]);
+		return -EBADF;
+	}
+
 	/* Copy the private key material */
 	memcpy((void *)der_out, (void *)&der[PRV_KEY_DER_START_IDX], PRV_KEY_SZ);
 
