@@ -21,7 +21,6 @@ target_sources(app
 target_include_directories(app
   PRIVATE
   ./include/
-  ${ZEPHYR_NRF_MODULE_DI}/include/
   ${ZEPHYR_NRF_MODULE_DIR}/subsys/net/lib/nrf_cloud/include/
   ${ZEPHYR_NRF_MODULE_DIR}/../modules/crypto/tinycrypt/lib/include/
   )
