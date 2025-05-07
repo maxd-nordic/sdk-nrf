@@ -9,7 +9,6 @@
 #include <zephyr/storage/stream_flash.h>
 #include <stdio.h>
 #include <dfu/dfu_target_stream.h>
-#include <dfu_stream_flatten.h>
 
 #ifdef CONFIG_DFU_TARGET_STREAM_SAVE_PROGRESS
 #define MODULE "dfu"
@@ -91,6 +90,40 @@ static int settings_set(const char *key, size_t len_rd,
 	return 0;
 }
 #endif /* CONFIG_DFU_TARGET_STREAM_SAVE_PROGRESS */
+
+int prepare_stream_device(const struct device *dev, size_t off, size_t size)
+{
+	/* Stream Flash will automatically do erase before write, if device requires
+	 * it, but when it is configured not to and there is a device, compiled in,
+	 * that requires erase before write we need to step in.
+	 */
+#if !defined(CONFIG_STREAM_FLASH_ERASE) && defined(CONFIG_FLASH_HAS_EXPLICIT_ERASE)
+	int rc = 0;
+#if defined(CONFIG_FLASH_HAS_NO_EXPLICIT_ERASE)
+	/* There is also a device that do not require erase, check if this is the
+	 * one.
+	 */
+	const struct flash_parameters *fparams = flash_get_parameters(dev);
+
+	/* Does this device need erase before write? */
+	if (!(flash_params_get_erase_cap(fparams) & FLASH_ERASE_C_EXPLICIT)) {
+		return 0;
+	}
+#endif
+	/* We are taking here an assumption that the area designated for Stream Flash
+	 * has been page aligned.
+	 */
+	rc = flash_erase(dev, off, size);
+	if (rc < 0) {
+		LOG_ERR("Failed to erase DFU stream designated area %d\n", rc);
+	}
+#else
+	ARG_UNUSED(dev);
+	ARG_UNUSED(off);
+	ARG_UNUSED(size);
+#endif
+	return 0;
+}
 
 struct stream_flash_ctx *dfu_target_stream_get_stream(void)
 {
@@ -222,9 +255,6 @@ int dfu_target_stream_reset(void)
 {
 	int err = 0;
 
-	stream.buf_bytes = 0;
-	stream.bytes_written = 0;
-
 #ifdef CONFIG_DFU_TARGET_STREAM_SAVE_PROGRESS
 	err = settings_delete(current_name_key);
 	if (err != 0) {
@@ -238,10 +268,15 @@ int dfu_target_stream_reset(void)
 		return 0;
 	}
 
-	/* Erase just the first page. Stream write will take care of erasing remaining pages
-	 * on a next buffered_write round
-	 */
-	err = stream_flash_flatten_page(&stream, stream.offset);
+	err = prepare_stream_device(stream.fdev, stream.offset, stream.available);
+	if (err != 0) {
+		return err;
+	}
+
+	/* Reinitialize stream_flash */
+	err = stream_flash_init(&stream, stream.fdev, stream.buf,
+				stream.buf_len, stream.offset,
+				stream.available, NULL);
 	current_id = NULL;
 
 	return err;

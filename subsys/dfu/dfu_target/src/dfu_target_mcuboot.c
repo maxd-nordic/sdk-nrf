@@ -23,7 +23,6 @@
 #include <dfu/dfu_target.h>
 #include <dfu/dfu_target_stream.h>
 #include <zephyr/devicetree.h>
-#include <dfu_stream_flatten.h>
 
 LOG_MODULE_REGISTER(dfu_target_mcuboot, CONFIG_DFU_TARGET_LOG_LEVEL);
 
@@ -76,10 +75,6 @@ static const struct device *const secondary_dev[] = {
 
 static const char *const secondary_name[] = {
 	LIST_DROP_EMPTY(LISTIFY(TARGET_IMAGE_COUNT, _MB_SEC_PAT_STRING, (,), NAME))
-};
-
-static const off_t secondary_last_address[] = {
-	LIST_DROP_EMPTY(LISTIFY(TARGET_IMAGE_COUNT, _MB_SEC_LA, (,)))
 };
 
 static const char *const target_id_name[] = {
@@ -178,6 +173,7 @@ int dfu_target_mcuboot_write(const void *const buf, size_t len)
 int dfu_target_mcuboot_done(bool successful)
 {
 	int err = 0;
+	struct stream_flash_ctx *flash_ctx = dfu_target_stream_get_stream();
 
 	err = dfu_target_stream_done(successful);
 	if (err != 0) {
@@ -187,8 +183,10 @@ int dfu_target_mcuboot_done(bool successful)
 
 	if (successful) {
 		stream_buf_bytes = 0;
-		err = stream_flash_flatten_page(dfu_target_stream_get_stream(),
-					secondary_last_address[curr_sec_img]);
+		/* Remove uploaded application image. Asumption is made here that
+		 * Stream Flash designated area is page aligned.
+		 */
+		err = flash_flatten(flash_ctx->fdev, flash_ctx->offset, flash_ctx->available);
 
 		if (err != 0) {
 			LOG_ERR("Unable to delete last page: %d", err);
