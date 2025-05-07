@@ -187,8 +187,11 @@ int dfu_target_mcuboot_done(bool successful)
 
 	if (successful) {
 		stream_buf_bytes = 0;
-		err = stream_flash_flatten_page(dfu_target_stream_get_stream(),
-					secondary_last_address[curr_sec_img]);
+
+		/* Remove uploaded application image. Asumption is made here that
+		 * Stream Flash designated area is page aligned.
+		 */
+		err = flash_flatten(flash_ctx->fdev, flash_ctx->offset, flash_ctx->available);
 
 		if (err != 0) {
 			LOG_ERR("Unable to delete last page: %d", err);
