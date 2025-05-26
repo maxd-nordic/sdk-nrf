@@ -20,7 +20,6 @@ target_include_directories(tfm_partitions
 target_sources(tfm_app_rot_partition_spp
     PRIVATE
         secure_peripheral_partition.c
-        util.c
 )
 
 target_include_directories(tfm_app_rot_partition_spp
