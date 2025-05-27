@@ -26,12 +26,28 @@
       "version": 1,
       "version_policy": "STRICT",
     },
+    {
+      "name": "TFM_SPP_SEND",
+      # bits [31:12]: Vendor (change this)
+      # bits [11:0] : Arbitrary at the discretion of the vendor
+      "sid": "0xFFFFF002",
+      "connection_based": false,
+      "non_secure_clients": true,
+      "stateless_handle": "auto",
+      "version": 1,
+      "version_policy": "STRICT",
+    },
   ],
 
   "mmio_regions": [
     {
-      "name": "${TFM_PERIPHERAL_NVMC}",
+      "name": "${TFM_PERIPHERAL_TIMER_N}",
       "permission": "READ-WRITE"
-    }
+    },
+    {
+      "name": "${TFM_PERIPHERAL_SPIM_N}",
+      "permission": "READ-WRITE"
+    },
+    @GPIOTE_MMIO@
   ],
 }
