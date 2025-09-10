@@ -106,7 +106,7 @@ listings = [
 filenames = set()
 
 # kconfig_db sanitization
-for e in kconfig_db:
+for e in kconfig_db["symbols"]:
     e["name"] = e["name"].upper()
     if e["filename"].startswith("../nrf/subsys"):
         e["filename"] = e["filename"].replace("../nrf", "<module:nrf>")
@@ -129,11 +129,11 @@ for e in filenames:
 
 
 option_to_module = {}
-for e in kconfig_db:
+for e in kconfig_db["symbols"]:
     option_to_module[e["name"]] = filename_to_module[e["filename"]]
 
 html_files = defaultdict(str)
-for e in kconfig_db:
+for e in kconfig_db["symbols"]:
     html_str = kconfig_option_to_html(e)
     html_str = re.sub(r'<a href="#(.*?)">.*?<\/a>', option_to_href, html_str)
     html_str = re.sub(r"<li>(CONFIG_.*?)<\/li>", option_to_href_li, html_str)
@@ -145,7 +145,7 @@ for k, v in html_files.items():
 
 with open("index.html", "w") as f:
     f.write(header)
-    for e in kconfig_db:
+    for e in kconfig_db["symbols"]:
         f.write(f'<p><a href="{option_to_module[e["name"]]}#{e["name"]}">{e["name"]}</a></p>')
     f.write(footer)
 
