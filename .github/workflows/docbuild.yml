@@ -56,8 +56,8 @@ jobs:
       - name: Install Python dependencies
         working-directory: ncs
         run: |
+          pip3 install -r nrf/scripts/requirements-fixed.txt
           pip3 install -r nrf/doc/requirements.txt
-          pip3 install pyelftools==0.32 junitparser==3.2.0
           pip3 install git+https://github.com/maxd-nordic/doc-sphinx-ncs-theme.git@128f7aa4629ea63f835f2fa6241dfe4ba746d17e --ignore-installed
 
       - name: West zephyr-export
@@ -277,13 +277,13 @@ jobs:
 
       - name: Compress Docsets
         working-directory: ncs/nrf/doc/_build
-        run: tar czf docsets.tar.xz docsets/
+        run: tar czf html.tar.xz html/
 
       - name: Upload Docsets
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: docsets
-          path: ncs/nrf/doc/_build/docsets.tar.xz
+          path: ncs/nrf/doc/_build/html.tar.xz
 
       - name: Store
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'external') || contains(github.event.pull_request.labels.*.name, 'CI-trusted-author') }}
