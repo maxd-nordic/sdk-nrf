@@ -1,0 +1,163 @@
+name: "Rebase v-doctesting-branch to upstream main"
+
+on:
+  schedule:
+    # Run nightly at 2:00 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  rebase:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # Fetch full history for rebase
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/nrfconnect/sdk-nrf.git || true
+          git remote set-url upstream https://github.com/nrfconnect/sdk-nrf.git
+
+      - name: Fetch upstream changes
+        run: |
+          git fetch upstream main
+          git fetch origin v-doctesting-branch
+
+      - name: Check if rebase is needed
+        id: check-rebase
+        run: |
+          git checkout v-doctesting-branch
+          UPSTREAM_COMMIT=$(git rev-parse upstream/main)
+          MERGE_BASE=$(git merge-base HEAD upstream/main)
+
+          if [ "$UPSTREAM_COMMIT" = "$MERGE_BASE" ]; then
+            echo "No rebase needed - branch is up to date"
+            echo "needs_rebase=false" >> $GITHUB_OUTPUT
+          else
+            echo "Rebase needed"
+            echo "needs_rebase=true" >> $GITHUB_OUTPUT
+            echo "upstream_commit=$UPSTREAM_COMMIT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rebase v-doctesting-branch onto upstream main
+        if: steps.check-rebase.outputs.needs_rebase == 'true'
+        run: |
+          git checkout v-doctesting-branch
+          git rebase upstream/main
+        continue-on-error: true
+
+      - name: Check for rebase conflicts
+        if: steps.check-rebase.outputs.needs_rebase == 'true'
+        id: check-conflicts
+        run: |
+          if git status --porcelain | grep -q "^UU\|^AA\|^DD"; then
+            echo "Rebase has conflicts"
+            echo "has_conflicts=true" >> $GITHUB_OUTPUT
+          else
+            echo "Rebase completed successfully"
+            echo "has_conflicts=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push rebased branch
+        if: steps.check-rebase.outputs.needs_rebase == 'true' && steps.check-conflicts.outputs.has_conflicts == 'false'
+        run: |
+          git push origin v-doctesting-branch --force-with-lease
+
+      - name: Create issue for rebase conflicts
+        if: steps.check-rebase.outputs.needs_rebase == 'true' && steps.check-conflicts.outputs.has_conflicts == 'true'
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            const title = `Automatic rebase of v-doctesting-branch failed due to conflicts`;
+            const body = `The nightly rebase of \`v-doctesting-branch\` onto upstream \`main\` failed due to merge conflicts.
+
+            **Details:**
+            - Upstream commit: ${{ steps.check-rebase.outputs.upstream_commit }}
+            - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            **Action needed:**
+            Please manually resolve the conflicts by:
+            1. Checking out the \`v-doctesting-branch\`
+            2. Running: \`git rebase upstream/main\`
+            3. Resolving conflicts and continuing the rebase
+            4. Force-pushing the rebased branch
+
+            This issue will be automatically closed when the next successful rebase occurs.`;
+
+            // Check if an issue already exists
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'rebase-conflict',
+              state: 'open'
+            });
+
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['rebase-conflict', 'automated']
+              });
+            } else {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: `New rebase conflict detected on ${new Date().toISOString().split('T')[0]}\n\n${body}`
+              });
+            }
+
+      - name: Close resolved conflict issues
+        if: steps.check-rebase.outputs.needs_rebase == 'true' && steps.check-conflicts.outputs.has_conflicts == 'false'
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'rebase-conflict',
+              state: 'open'
+            });
+
+            for (const issue of issues) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'The rebase conflicts have been resolved automatically. Closing this issue.'
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.check-rebase.outputs.needs_rebase }}" = "false" ]; then
+            echo "✅ Branch is already up to date with upstream main"
+          elif [ "${{ steps.check-conflicts.outputs.has_conflicts }}" = "true" ]; then
+            echo "❌ Rebase failed due to conflicts - issue created for manual resolution"
+            exit 1
+          else
+            echo "✅ Successfully rebased v-doctesting-branch onto upstream main"
+          fi
