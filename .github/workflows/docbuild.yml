@@ -59,7 +59,7 @@ jobs:
         working-directory: ncs
         run: |
           sudo apt update
-          sudo apt-get install -y wget python3-pip git ninja-build graphviz lcov mscgen plantuml
+          sudo apt-get install -y wget python3-pip git ninja-build graphviz lcov mscgen plantuml ninja-build mscgen plantuml python3-venv python3-wheel python3-setuptools clang sqlite3
           sudo snap install yq
           DOXYGEN_VERSION=$(yq ".doxygen.version" nrf/scripts/tools-versions-linux.yml)
           wget --no-verbose "https://github.com/doxygen/doxygen/releases/download/Release_${DOXYGEN_VERSION//./_}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz"
@@ -83,12 +83,22 @@ jobs:
       - name: install-pip
         working-directory: ncs
         run: |
-          pip install -r nrf/doc/requirements.txt
+          pip3 install -r nrf/scripts/requirements-fixed.txt
+          pip3 install -r nrf/doc/requirements.txt
+          pip3 install git+https://github.com/maxd-nordic/doc-sphinx-ncs-theme.git@128f7aa4629ea63f835f2fa6241dfe4ba746d17e --ignore-installed
+          pip3 install doc2dash
 
       - name: West zephyr-export
         working-directory: ncs
         run: |
           west zephyr-export
+
+      - name: Install toolchain
+        working-directory: ncs
+        run: |
+          sudo apt install --no-install-recommends git cmake ninja-build gperf \
+          ccache dfu-util device-tree-compiler wget python3-dev python3-venv python3-tk \
+          xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
 
       - name: Build documentation
         working-directory: ncs/nrf
@@ -138,120 +148,69 @@ jobs:
           zip -rq "${ARCHIVE}" .
           mv "${ARCHIVE}" ../../../
 
-      - name: Prepare Zoomin upload
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'external') || contains(github.event.pull_request.labels.*.name, 'CI-trusted-author') }}
-        working-directory: ncs/nrf
+      - name: Build Docsets
+        working-directory: ncs/nrf/doc/_build
         run: |
-          ROOT="$PWD"
+          mkdir docsets
+          doc2dash -d docsets/ -n kconfig html/kconfig
+          doc2dash -d docsets/ -n matter html/matter
+          doc2dash -d docsets/ -n mcuboot html/mcuboot --index-page wrapper.html
+          doc2dash -d docsets/ -n nrf html/nrf
+          doc2dash -d docsets/ -n nrfxlib html/nrfxlib --index-page README.html
+          doc2dash -d docsets/ -n tfm html/tfm
+          doc2dash -d docsets/ -n zephyr html/zephyr
+          PYTHONPATH=../ doc2dash --parser doc2dash_parsers.doxygen.DoxygenParser  -d docsets/ -n nrfx html/nrfx/html
+          PYTHONPATH=../ doc2dash --parser doc2dash_parsers.doxygen.DoxygenParser  -d docsets/ -n wifi html/wifi/html
 
-          # Patch Sphinx footers where we want to keep copyright info
-          # (**/doxygen/* skipped, Doxygen content)
-          find \
-            doc/_build/html/matter \
-            doc/_build/html/zephyr \
-            -type f \
-            -name "*.html" \
-            -not -path "**/doxygen/*" \
-            -exec python doc/_zoomin/footer_patch.py {} --silent ";"
-
-          # Doxygen APIs combined with Sphinx
-          declare -a SPHINX_DOXYGEN=("nrf" "nrfxlib" "zephyr")
-
-          # Doxygen APIs standalone
-          declare -a DOXYGEN=("nrfx" "wifi")
-
-          mkdir doc/_build/html-doxygen
-
-          for docset in "${SPHINX_DOXYGEN[@]}"; do
-            OUTDIR=doc/_build/html-doxygen/$docset-apis
-            mv doc/_build/html/$docset/doxygen/html "$OUTDIR"
-
-            # Populate custom.properties, tags.yml
-            cp doc/_zoomin/$docset.apis.custom.properties "$OUTDIR/custom.properties"
-            sed -i 's/__VERSION__/'"$VERSION"'/g' "$OUTDIR/custom.properties"
-
-            cp doc/_zoomin/$docset.apis.tags.yml "$OUTDIR/tags.yml"
-            sed -i 's/__VERSION__/'"$VERSION"'/g' "$OUTDIR/tags.yml"
-
-            # Patch links from Sphinx to other Doxygen APIs (combined)
-            find doc/_build/html/$docset -type f -name "*.html" -exec \
-              sed -ri "/href=\"([^\"]+)\/([a-z]+)\/doxygen\/html\/([^\"]+)\"/{s//href=\"..\/..\/\1\/\2-apis-$VERSION\/page\/\3\"/g; :a s/__/_/g;ta; }" {} \;
-
-            for doxset in "${DOXYGEN[@]}"; do
-              # Patch links from Sphinx to other Doxygen APIs (standalone)
-              find doc/_build/html/$docset -type f -name "*.html" -exec \
-                sed -ri "/href=\"([^\"]+)\/$doxset\/html\/([^\"]+)\"/{s//href=\"..\/..\/\1\/$doxset-apis-$VERSION\/page\/\2\"/g; :a s/__/_/g;ta; }" {} \;
-            done
-
-            # Patch links from Sphinx to same docset Doxygen APIs
-            find doc/_build/html/$docset -type f -name "*.html" -exec \
-              sed -ri "/href=\"([^\"]+)\/doxygen\/html\/([^\"]+)\"/{s//href=\"\1\/..\/..\/..\/$docset-apis-$VERSION\/page\/\2\"/g; :a s/__/_/g;ta; }" {} \;
-
-            pushd "$OUTDIR"
-            ARCHIVE="$docset-apis-$VERSION.zip"
-            zip -rq "$ARCHIVE" .
-            mv "$ARCHIVE" "$ROOT"
-            popd
-          done
-
-          for docset in "${DOXYGEN[@]}"; do
-            OUTDIR=doc/_build/html-doxygen/$docset-apis
-            mv doc/_build/html/$docset/html "$OUTDIR"
-
-            # Populate custom.properties, tags.yml
-            cp doc/_zoomin/$docset.apis.custom.properties "$OUTDIR/custom.properties"
-            sed -i 's/__VERSION__/'"$VERSION"'/g' "$OUTDIR/custom.properties"
-
-            cp doc/_zoomin/$docset.apis.tags.yml "$OUTDIR/tags.yml"
-            sed -i 's/__VERSION__/'"$VERSION"'/g' "$OUTDIR/tags.yml"
-
-            pushd "$OUTDIR"
-            ARCHIVE="$docset-apis-$VERSION.zip"
-            zip -rq "$ARCHIVE" .
-            mv "$ARCHIVE" "$ROOT"
-            popd
-          done
-
-          # NCS
-          OUTDIR=doc/_build/html
-
-          # Populate custom.properties, tags.yml
-          cp doc/_zoomin/ncs.custom.properties "$OUTDIR/custom.properties"
-          sed -i 's/__VERSION__/'"$VERSION"'/g' "$OUTDIR/custom.properties"
-
-          cp doc/_zoomin/ncs.tags.yml "$OUTDIR/tags.yml"
-          sed -i 's/__VERSION__/'"$VERSION"'/g' "$OUTDIR/tags.yml"
-
-          ARCHIVE="ncs-$VERSION.zip"
-          pushd "$OUTDIR"
-          zip -rq "$ARCHIVE" .
-          mv "$ARCHIVE" "$ROOT"
-          popd
-
-      - name: Find nRF Connect SDK Edited Documents
-        working-directory: ncs/nrf
+      - name: Add docset icons
+        working-directory: ncs/nrf/doc/
         run: |
-          COMMENT="comment.txt"
-          PREFIX="https://ncsdoc.z6.web.core.windows.net/PR-${{ github.event.pull_request.number }}/"
-          CHANGED=$(git diff --name-only --diff-filter=d "${{ github.event.pull_request.base.sha }}..HEAD")
+          cp docset-logos/zephyr-logo.png _build/docsets/kconfig.docset/icon.png
+          cp docset-logos/matter-logo.png _build/docsets/matter.docset/icon.png
+          cp docset-logos/mcuboot-logo.png _build/docsets/mcuboot.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/nrf.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/nrfxlib.docset/icon.png
+          cp docset-logos/tfm-logo.png _build/docsets/tfm.docset/icon.png
+          cp docset-logos/zephyr-logo.png _build/docsets/zephyr.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/nrfx.docset/icon.png
+          cp docset-logos/nordic-logo.png _build/docsets/wifi.docset/icon.png
 
-          echo "You can find the documentation preview for this PR [here](${PREFIX})." >> $COMMENT
+      - name: Fix KConfig docset
+        working-directory: ncs/nrf/doc/_build/docsets/kconfig.docset/Contents/Resources/Documents
+        run: python3 ../../../../../../_scripts/rebuild_kconfig_index.py
 
-          NRF=$(echo "$CHANGED" | \
-                grep -e "doc/nrf/" | \
-                grep -e ".rst" | \
-                sed -e "s#^doc/nrf\(.*\)\.rst#${PREFIX}nrf\1.html#g")
+      - name: Filter out group elements from Zephyr docset
+        working-directory: ncs/nrf/doc/_build/docsets/zephyr.docset/Contents/Resources/Documents
+        run: python3 ../../../../../../_scripts/filter_docset_index.py
 
-          NRF_EXT=$(echo "$CHANGED" | \
-                    grep -e "applications/" -e "samples/" -e "scripts/" -e "tests/" | \
-                    grep -e ".rst" | \
-                    sed -e "s#^\(applications\|samples\|scripts\|tests\)\(.*\)\.rst#${PREFIX}nrf\/\1\2.html#g")
+      - name: Filter out group elements from nrf docset
+        working-directory: ncs/nrf/doc/_build/docsets/nrf.docset/Contents/Resources/Documents
+        run: python3 ../../../../../../_scripts/filter_docset_index.py
 
-          NRF_ALL=$(printf "$NRF\n$NRF_EXT")
+      - name: Filter out group elements from nrfxlib docset
+        working-directory: ncs/nrf/doc/_build/docsets/nrfxlib.docset/Contents/Resources/Documents
+        run: python3 ../../../../../../_scripts/filter_docset_index.py
 
-          if [ ! -z "$NRF_ALL" ]; then
-            printf "\nPreview links for modified nRF Connect SDK documents:\n\n$NRF_ALL" >> $COMMENT
-          fi
+      - name: Fix links between docsets
+        working-directory: ncs/nrf/doc/_build/docsets/
+        run: |
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./nrfxlib/([^"]*)"#\1 href=\"\2../../../../../nrfxlib.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./mcuboot/([^"]*)"#\1 href=\"\2../../../../../mcuboot.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./matter/([^"]*)"#\1 href=\"\2../../../../../matter.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./kconfig/([^"]*)"#\1 href=\"\2../../../../../kconfig.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./nrf/([^"]*)"#\1 href=\"\2../../../../../nrf.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./zephyr/([^"]*)"#\1 href=\"\2../../../../../zephyr.docset/Contents/Resources/Documents/\3"#g' {} +
+          find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./tfm/([^"]*)"#\1 href=\"\2../../../../../tfm.docset/Contents/Resources/Documents/\3"#g' {} +
+
+      - name: Compress Docsets
+        working-directory: ncs/nrf/doc/_build
+        run: tar czf docsets.tar.xz docsets/
+
+      - name: Upload Docsets
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        with:
+          name: docsets
+          path: ncs/nrf/doc/_build/docsets.tar.xz
 
       - name: Store
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'external') || contains(github.event.pull_request.labels.*.name, 'CI-trusted-author') }}
