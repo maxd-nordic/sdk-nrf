@@ -203,14 +203,14 @@ jobs:
           find . -type f -name "*.html" -exec sed -i -E 's#(a|class=\"reference external\") href="([^"]*)\.\./tfm/([^"]*)"#\1 href=\"\2../../../../../tfm.docset/Contents/Resources/Documents/\3"#g' {} +
 
       - name: Compress Docsets
-        working-directory: ncs/nrf/doc/_build
-        run: tar czf docsets.tar.xz docsets/
+        working-directory: ncs/nrf/doc/_build/docsets/
+        run: for i in *.docset; do tar czf "$i".tgz "$i"; done
 
-      - name: Upload Docsets
+      - name: Upload docset artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: docsets
-          path: ncs/nrf/doc/_build/docsets.tar.xz
+          path: ncs/nrf/doc/_build/docsets/*.tgz
 
       - name: Store
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'external') || contains(github.event.pull_request.labels.*.name, 'CI-trusted-author') }}
