@@ -311,6 +311,7 @@ int nrf_cloud_obj_bulk_init(struct nrf_cloud_obj *const bulk)
 		bulk->json = cJSON_CreateArray();
 		return bulk->json ? 0 : -ENOMEM;
 	}
+	// todo
 	default:
 		break;
 	}
@@ -402,6 +403,7 @@ int nrf_cloud_obj_free(struct nrf_cloud_obj *const obj)
 bool nrf_cloud_obj_bulk_check(struct nrf_cloud_obj *const obj)
 {
 	return (obj && (obj->type == NRF_CLOUD_OBJ_TYPE_JSON) && cJSON_IsArray(obj->json));
+	// todo
 }
 
 int nrf_cloud_obj_bulk_add(struct nrf_cloud_obj *const bulk, struct nrf_cloud_obj *const obj)
@@ -422,6 +424,7 @@ int nrf_cloud_obj_bulk_add(struct nrf_cloud_obj *const bulk, struct nrf_cloud_ob
 
 		return cJSON_AddItemToArray(bulk->json, obj->json) ? 0 : -EIO;
 	}
+	// todo
 	default:
 		break;
 	}

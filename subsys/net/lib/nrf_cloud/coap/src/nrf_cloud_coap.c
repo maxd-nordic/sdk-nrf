@@ -283,6 +283,7 @@ int nrf_cloud_coap_obj_send(struct nrf_cloud_obj *const obj, bool confirmable)
 
 	if (bulk && (obj->type == NRF_CLOUD_OBJ_TYPE_COAP_CBOR)) {
 		return -ENOTSUP;
+		// todo
 	}
 
 	int err = 0;
