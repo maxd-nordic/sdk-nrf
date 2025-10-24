@@ -26,6 +26,12 @@
 #include "nrf_cloud_client_id.h"
 #include "coap_codec.h"
 
+#include "msg_encode_types.h"
+#include "msg_encode.h"
+#include <zcbor_encode.h>
+#include <zcbor_decode.h>
+#include <zcbor_common.h>
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(nrf_cloud_coap, CONFIG_NRF_CLOUD_COAP_LOG_LEVEL);
 
@@ -260,6 +266,80 @@ int nrf_cloud_coap_bin_log_send(const uint8_t * const buf, size_t buf_len, bool 
 		LOG_ERR("Failed to send POST request: %d", err);
 	}
 	return err;
+}
+
+#define CBOR_TAG_APP_ID 1
+#define CBOR_TAG_DATA   2
+#define CBOR_TAG_TS     3
+
+static bool encode_sensor_msg_float(zcbor_state_t *state, const char *app_id_str, double value,
+				    uint64_t timestamp)
+{
+	bool success;
+
+	__ASSERT_NO_MSG(state != NULL);
+	__ASSERT_NO_MSG(app_id_str != NULL);
+
+	/* Chain all operations with && for immediate failure on error */
+	success = zcbor_map_start_encode(state, 3) &&
+			/* AppId field */
+			zcbor_uint32_put(state, CBOR_TAG_APP_ID) &&
+			/* strlen() is safe since app_id_str is a null-terminated string literal */
+			zcbor_tstr_put_term(state, app_id_str, strlen(app_id_str)) &&
+
+			/* Data field - encode as float */
+			zcbor_uint32_put(state, CBOR_TAG_DATA) &&
+			zcbor_float32_put(state, value) &&
+
+			/* Timestamp field */
+			zcbor_uint32_put(state, CBOR_TAG_TS) &&
+			zcbor_uint64_put(state, timestamp) &&
+
+			/* End the map */
+			zcbor_map_end_encode(state, 3);
+
+	if (!success) {
+		LOG_ERR("Failed to encode %s message", app_id_str);
+	}
+
+	return success;
+}
+
+static uint8_t bulk_payload[1024];
+
+void nrf_cloud_coap_test_bulk_send(void)
+{
+	if (!nrf_cloud_coap_is_connected()) {
+		return;
+	}
+	size_t num_elements = 3;
+	int err = 0;
+	size_t output_length = 0;
+	int64_t msg_timestamp = 0;
+	zcbor_state_t states[4]; /* 3 levels of CBOR state nesting */
+
+	err = date_time_now(&msg_timestamp);
+	if (err) {
+		LOG_ERR("Could not get current time: %d", err);
+	}
+
+	zcbor_new_encode_state(states, ARRAY_SIZE(states), bulk_payload, ARRAY_SIZE(bulk_payload), num_elements);
+
+	zcbor_list_start_encode(states, num_elements);
+	encode_sensor_msg_float(states, "TEMP", 13.4f , msg_timestamp);
+	encode_sensor_msg_float(states, "HUMID", 20.2f , msg_timestamp);
+	encode_sensor_msg_float(states, "AIR_PRESS", 1003.1f , msg_timestamp);
+	zcbor_list_end_encode(states, num_elements);
+
+	output_length = states[0].payload - bulk_payload;
+
+	err = nrf_cloud_coap_post(COAP_D2C_BULK_RSC, NULL,
+				  bulk_payload, output_length,
+				  COAP_CONTENT_FORMAT_APP_CBOR,
+				  IS_ENABLED(CONFIG_COAP_SEND_CONFIRMABLE), NULL, NULL);
+	if (err) {
+		LOG_ERR("Failed to send POST request: %d", err);
+	}
 }
 
 int nrf_cloud_coap_obj_send(struct nrf_cloud_obj *const obj, bool confirmable)

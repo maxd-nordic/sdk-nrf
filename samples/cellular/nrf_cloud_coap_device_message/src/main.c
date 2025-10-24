@@ -137,9 +137,7 @@ static void send_message_on_button(void)
 	/* Wait for a button press */
 	k_event_wait(&button_press_event, BUTTON_PRESSED, true, K_FOREVER);
 
-	(void)send_message("{\"appId\":\"BUTTON\", \"messageType\":\"DATA\", \"data\":\"1\"}");
-
-	(void)nrf_cloud_log_send(LOG_LEVEL_INF, "Button pressed %u times", ++count);
+	nrf_cloud_coap_test_bulk_send();
 }
 
 static void print_reset_reason(void)
