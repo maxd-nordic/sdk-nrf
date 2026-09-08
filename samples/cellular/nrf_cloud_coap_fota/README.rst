@@ -4,7 +4,7 @@
    :title: Cellular: nRF Cloud CoAP FOTA
 
    The nRF Cloud CoAP FOTA sample demonstrates how to perform Firmware Over-the-Air (FOTA) updates over CoAP on your device.
-   This covers application and delta modem FOTA updates.
+   This covers application, full modem, and delta modem FOTA updates.
 
 Requirements
 ************
@@ -93,22 +93,15 @@ See :ref:`configure_application` on how to configure the parameters.
 
 To create a FOTA test version of this sample, change the ``PATCHLEVEL`` in the :file:`VERSION` file.
 
-To enable delta modem FOTA, add ``-DEXTRA_CONF_FILE=delta_modem_fota.conf`` to your build command and configure the modem firmware project key in one of the following ways:
+Full modem and delta modem FOTA use a dedicated Memfault modem project. Configure its project key in one of the following ways:
 
 * At runtime, by adding the ``"memfaultModemKey"`` string item to the control section of the device's shadow
   Use the `nRF Cloud`_ portal or the REST API to perform the shadow update.
 * At build time, by setting the :kconfig:option:`CONFIG_MEMFAULT_FOTA_MODEM_PROJECT_KEY` Kconfig option to your Memfault modem firmware project key.
 
+To enable delta modem FOTA, add ``-DEXTRA_CONF_FILE=delta_modem_fota.conf`` to your build command.
+
 See the `Memfault nRF Modem FOTA`_ documentation for more details on configuring a delta modem FOTA.
-
-.. note::
-   SMP and full modem FOTA update are not currently supported by this sample.
-   However, the following legacy overlay and source files for enabling those features are left for reference:
-
-   * :file:`overlays/legacy_smp_fota.conf`
-   * :file:`overlays/legacy_smp_modem_fota.conf`
-   * :file:`src/smp_reset.h`
-   * :file:`src/smp_reset.c`
 
 Testing
 =======
